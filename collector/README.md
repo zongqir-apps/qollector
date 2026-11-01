@@ -90,7 +90,22 @@ Authorization: Bearer <QOLLECT_TOKEN>
 Content-Type: application/json
 ```
 
-请求示例：
+请求示例（本地 OCR 模式，直接传输客户端提取的对话流）：
+
+```json
+{
+  "captured_at": "2026-11-01T12:00:00Z",
+  "source_app": "企业微信",
+  "window_title": "项目群",
+  "engine": "local_ocr",
+  "messages": [
+    { "speaker": "我", "role": "user", "content": "好的马上处理" },
+    { "speaker": "张三", "role": "peer", "content": "麻烦尽快" }
+  ]
+}
+```
+
+请求示例（服务端大模型模式，传输截图由服务端视觉 AI 解析）：
 
 ```json
 {
@@ -102,7 +117,8 @@ Content-Type: application/json
 }
 ```
 
-配置 `QOLLECT_AI_API_KEY`（如硅基流动 SiliconFlow 或通义千问）后，服务端会自动调用多模态视觉模型（如 `Qwen/Qwen3-VL-32B-Instruct`）解析聊天截图中的发言人与连续对话，清洗后结构化归档到 `data/context/YYYY/MM/DD.jsonl`。未配置 AI Key 时仅保留快照元数据。
+- 若请求体已携带 `messages`（客户端本地 OCR 模式），Collector 直接结构化归档，跳过外部 AI 模型调用，实现 0 费用极速入库。
+- 若仅携带 `image_base64`（服务端大模型模式），且配置了 `QOLLECT_AI_API_KEY`（如硅基流动 SiliconFlow 或通义千问），服务端会自动异步调用多模态视觉模型（如 `Qwen/Qwen3-VL-32B-Instruct`）解析聊天截图中的发言人与连续对话，清洗后结构化归档到 `data/context/YYYY/MM/DD.jsonl`。未配置 AI Key 时仅保留快照元数据。
 
 只接受文本类型。图片、二进制和其他类型会返回 `415`。超过 `QOLLECT_MAX_TEXT_CHARS` 的文本只保存前 `QOLLECT_PREVIEW_CHARS` 个 Unicode 字符，并标记 `truncated: true`，同时保留原始字符数和 SHA-256。
 

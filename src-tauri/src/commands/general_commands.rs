@@ -60,6 +60,7 @@ pub async fn update_general_config(
         app.try_state::<Arc<crate::chat_context_capture::ChatContextCaptureState>>()
     {
         chat_context_capture_state.set_enabled(config.chat_context_capture_enabled);
+        chat_context_capture_state.set_mode(&config.chat_context_capture_mode);
     }
 
     if let Some(copy_on_select_state) =

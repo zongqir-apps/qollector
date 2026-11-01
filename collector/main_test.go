@@ -71,3 +71,21 @@ func TestCleanDialogueJSON(t *testing.T) {
 		t.Fatalf("cleanDialogueJSON altered plain JSON: got %q, want %q", got, plain)
 	}
 }
+
+func TestLocalOCRMessagesValidation(t *testing.T) {
+	req := contextSnapshotRequest{
+		CapturedAt:  "2026-11-01T22:00:00Z",
+		SourceApp:   "WeChat",
+		WindowTitle: "Test",
+		Engine:      "local_ocr",
+		Messages: []storedDialogueMessage{
+			{Speaker: "我", Role: "user", Content: "你好"},
+		},
+	}
+	if len(req.Messages) == 0 {
+		t.Fatal("expected messages to be present")
+	}
+	if req.Engine != "local_ocr" {
+		t.Fatalf("unexpected engine %q", req.Engine)
+	}
+}

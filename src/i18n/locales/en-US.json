@@ -528,7 +528,13 @@
       "inputCapture": "Capture input that does not reach the clipboard",
       "inputCaptureHint": "Use this for direct IME input, chat boxes, and other text that never reaches the clipboard. Supported field text is added to the same history for search and self-hosted analysis. Password fields, Qollect itself, and text that existed before enabling are skipped.",
       "chatContextCapture": "Chat context perception (WeChat/WeCom snapshots)",
-      "chatContextCaptureHint": "When active in WeChat or WeCom chat windows, detects new message changes and captures settled snapshots to sync with the configured Collector server (for Qwen-VL analysis). Operates locally if Collector is not configured."
+      "chatContextCaptureHint": "When active in WeChat or WeCom chat windows, detects new message changes and captures settled snapshots after a 10s pause to sync with Collector for archive. Operates locally if Collector is not configured.",
+      "chatContextCaptureMode": "Extraction Engine",
+      "chatContextCaptureModeHint": "Select extraction engine for chat context (both require configuring Collector below for archive sync):",
+      "chatContextCaptureModeLocalOcr": "Local OCR mode (Recommended)",
+      "chatContextCaptureModeLocalOcrDesc": "Uses Windows native OCR to extract text locally (30ms) and uploads only plain text to Collector. 0 cost, instant, and privacy-first.",
+      "chatContextCaptureModeCloudLlm": "Server Vision AI mode",
+      "chatContextCaptureModeCloudLlmDesc": "Uploads chat snapshots to Collector, which invokes server Vision AI (e.g. SiliconFlow Qwen-VL) to extract speakers and dialogue (consumes API tokens)."
     },
     "collector": {
       "title": "Self-hosted analysis collector",

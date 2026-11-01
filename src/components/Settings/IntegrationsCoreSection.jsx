@@ -261,6 +261,76 @@ function IntegrationsCoreSection({
                   <span className="toggle-slider" />
                 </span>
               </label>
+              {generalConfig.chat_context_capture_enabled && (
+                <div className="setting-item" style={{ paddingLeft: '1rem', marginTop: '0.25rem' }}>
+                  <div className="info-box" style={{ marginBottom: '0.75rem' }}>
+                    {t('settings.general.chatContextCaptureModeHint')}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="chatContextCaptureMode"
+                        value="local_ocr"
+                        checked={(generalConfig.chat_context_capture_mode || 'local_ocr') === 'local_ocr'}
+                        onChange={async () => {
+                          const updated = {
+                            ...generalConfig,
+                            chat_context_capture_mode: 'local_ocr',
+                          };
+                          setGeneralConfig(updated);
+                          try {
+                            await invoke('update_general_config', { config: updated });
+                          } catch (error) {
+                            console.error('Failed to save chat context mode:', error);
+                            setGeneralConfig(generalConfig);
+                          }
+                        }}
+                        style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                          {t('settings.general.chatContextCaptureModeLocalOcr')}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                          {t('settings.general.chatContextCaptureModeLocalOcrDesc')}
+                        </div>
+                      </div>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="chatContextCaptureMode"
+                        value="cloud_llm"
+                        checked={generalConfig.chat_context_capture_mode === 'cloud_llm'}
+                        onChange={async () => {
+                          const updated = {
+                            ...generalConfig,
+                            chat_context_capture_mode: 'cloud_llm',
+                          };
+                          setGeneralConfig(updated);
+                          try {
+                            await invoke('update_general_config', { config: updated });
+                          } catch (error) {
+                            console.error('Failed to save chat context mode:', error);
+                            setGeneralConfig(generalConfig);
+                          }
+                        }}
+                        style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                          {t('settings.general.chatContextCaptureModeCloudLlm')}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                          {t('settings.general.chatContextCaptureModeCloudLlmDesc')}
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
             </>
           )}
           <label className="sg-row setting-toggle-row">

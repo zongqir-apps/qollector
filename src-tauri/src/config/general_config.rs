@@ -61,6 +61,9 @@ pub struct GeneralConfig {
     /// Capture conversation context snapshots from chat windows (WeChat/WeCom) on Windows.
     #[serde(default)]
     pub chat_context_capture_enabled: bool,
+    /// Context capture mode: "local_ocr" (default) or "cloud_llm".
+    #[serde(default = "default_chat_context_capture_mode")]
+    pub chat_context_capture_mode: String,
     /// Enable copy-on-select on Windows.
     #[serde(default)]
     pub copy_on_select_enabled: bool,
@@ -92,6 +95,10 @@ fn default_copy_on_select_double_click_enabled() -> bool {
 
 fn default_accent_color() -> String {
     "blue".to_string()
+}
+
+fn default_chat_context_capture_mode() -> String {
+    "local_ocr".to_string()
 }
 
 fn default_language() -> String {
@@ -164,6 +171,7 @@ impl Default for GeneralConfig {
             accent_color: default_accent_color(),
             input_capture_enabled: false,
             chat_context_capture_enabled: false,
+            chat_context_capture_mode: default_chat_context_capture_mode(),
             copy_on_select_enabled: false,
             copy_on_select_double_click_enabled: default_copy_on_select_double_click_enabled(),
             copy_on_select_smart_replace_enabled: default_copy_on_select_smart_replace_enabled(),
@@ -199,6 +207,9 @@ impl GeneralConfig {
         .contains(&self.accent_color.as_str())
         {
             self.accent_color = default_accent_color();
+        }
+        if self.chat_context_capture_mode != "local_ocr" && self.chat_context_capture_mode != "cloud_llm" {
+            self.chat_context_capture_mode = default_chat_context_capture_mode();
         }
     }
 }

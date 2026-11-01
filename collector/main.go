@@ -73,11 +73,13 @@ type storedEvent struct {
 }
 
 type contextSnapshotRequest struct {
-	CapturedAt  string `json:"captured_at"`
-	SourceApp   string `json:"source_app"`
-	WindowTitle string `json:"window_title"`
-	ImageFormat string `json:"image_format"`
-	ImageBase64 string `json:"image_base64"`
+	CapturedAt  string                  `json:"captured_at"`
+	SourceApp   string                  `json:"source_app"`
+	WindowTitle string                  `json:"window_title"`
+	ImageFormat string                  `json:"image_format,omitempty"`
+	ImageBase64 string                  `json:"image_base64,omitempty"`
+	Engine      string                  `json:"engine,omitempty"`
+	Messages    []storedDialogueMessage `json:"messages,omitempty"`
 }
 
 type storedDialogueMessage struct {
@@ -318,8 +320,8 @@ func (c *collector) handleContextSnapshot(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if strings.TrimSpace(req.ImageBase64) == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "image_base64 is required"})
+	if len(req.Messages) == 0 && strings.TrimSpace(req.ImageBase64) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "either messages or image_base64 is required"})
 		return
 	}
 
@@ -330,8 +332,28 @@ func (c *collector) handleContextSnapshot(w http.ResponseWriter, r *http.Request
 		"window_title": req.WindowTitle,
 	})
 
-	// Process Vision AI in background
+	// Process in background
 	go func() {
+		if len(req.Messages) > 0 {
+			modelName := req.Engine
+			if modelName == "" {
+				modelName = "local_ocr"
+			}
+			record := storedContextSnapshot{
+				CapturedAt:  req.CapturedAt,
+				ReceivedAt:  time.Now().UTC().Format(time.RFC3339Nano),
+				SourceApp:   req.SourceApp,
+				WindowTitle: req.WindowTitle,
+				Model:       modelName,
+				Messages:    req.Messages,
+			}
+			log.Printf("Received %d local OCR messages for %s (%s)", len(req.Messages), req.SourceApp, req.WindowTitle)
+			if appendErr := c.appendContext(record); appendErr != nil {
+				log.Printf("Failed to append context snapshot: %v", appendErr)
+			}
+			return
+		}
+
 		msgs, raw, err := c.callVisionAI(req)
 		record := storedContextSnapshot{
 			CapturedAt:  req.CapturedAt,

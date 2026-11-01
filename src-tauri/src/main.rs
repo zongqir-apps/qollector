@@ -535,6 +535,7 @@ fn main() {
                 app.manage(input_capture_state.clone());
                 let chat_context_capture_state = Arc::new(ChatContextCaptureState::new(
                     general_config.chat_context_capture_enabled,
+                    general_config.chat_context_capture_mode.clone(),
                 ));
                 app.manage(chat_context_capture_state.clone());
                 let copy_on_select_state = Arc::new(CopyOnSelectState::new(

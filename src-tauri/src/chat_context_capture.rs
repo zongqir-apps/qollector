@@ -1,20 +1,24 @@
 use crate::core::clipboard_manager::ClipboardManager;
+use crate::ocr::native::NativeOcr;
+use crate::ocr::provider::OcrProvider;
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const MONITOR_POLL_INTERVAL: Duration = Duration::from_millis(1000);
-const SETTLE_DELAY: Duration = Duration::from_millis(1500);
+const SETTLE_DELAY: Duration = Duration::from_millis(10000);
 
 pub struct ChatContextCaptureState {
     enabled: AtomicBool,
+    mode: parking_lot::RwLock<String>,
 }
 
 impl ChatContextCaptureState {
-    pub fn new(enabled: bool) -> Self {
+    pub fn new(enabled: bool, mode: String) -> Self {
         Self {
             enabled: AtomicBool::new(enabled),
+            mode: parking_lot::RwLock::new(mode),
         }
     }
 
@@ -25,6 +29,22 @@ impl ChatContextCaptureState {
     pub fn is_enabled(&self) -> bool {
         self.enabled.load(Ordering::Relaxed)
     }
+
+    pub fn set_mode(&self, mode: &str) {
+        let mut m = self.mode.write();
+        *m = mode.to_string();
+    }
+
+    pub fn mode(&self) -> String {
+        self.mode.read().clone()
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StoredDialogueMessage {
+    pub speaker: String,
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,8 +52,14 @@ pub struct ContextSnapshotPayload<'a> {
     pub captured_at: String,
     pub source_app: &'a str,
     pub window_title: &'a str,
-    pub image_format: &'a str,
-    pub image_base64: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engine: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_format: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_base64: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub messages: Option<Vec<StoredDialogueMessage>>,
 }
 
 #[cfg(target_os = "windows")]
@@ -139,9 +165,11 @@ mod platform_impl {
             }
 
             // 1) Fast 32x32 stride grayscale thumbnail for instant diff
+            // Exclude bottom 20% (input box area) to prevent blinking cursor from triggering diff
+            let sample_height = (height * 80 / 100).max(1);
             let mut sample = Vec::with_capacity(32 * 32);
             for y in 0..32 {
-                let row = (y * height / 32) as usize;
+                let row = (y * sample_height / 32) as usize;
                 for x in 0..32 {
                     let col = (x * width / 32) as usize;
                     let idx = (row * width as usize + col) * 4;
@@ -177,28 +205,16 @@ mod platform_impl {
     }
 }
 
-async fn send_snapshot_to_collector(
+async fn send_context_snapshot_to_collector(
     endpoint: &str,
     token: &str,
-    source_app: &str,
-    window_title: &str,
-    jpeg_bytes: Vec<u8>,
+    payload: &ContextSnapshotPayload<'_>,
 ) -> Result<(), String> {
-    use base64::Engine;
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&jpeg_bytes);
-    let payload = ContextSnapshotPayload {
-        captured_at: chrono::Utc::now().to_rfc3339(),
-        source_app,
-        window_title,
-        image_format: "jpeg",
-        image_base64: b64,
-    };
-
     let url = format!("{}/v1/context-snapshots", endpoint.trim_end_matches('/'));
     let response = crate::http_client::client()
         .post(url)
         .header("Authorization", format!("Bearer {}", token))
-        .json(&payload)
+        .json(payload)
         .timeout(Duration::from_secs(15))
         .send()
         .await
@@ -286,17 +302,70 @@ pub fn start_chat_context_monitor(
                             if cfg.enabled && !cfg.endpoint.is_empty() && !cfg.token.is_empty() {
                                 let app_name = pending_app.clone();
                                 let title = pending_title.clone();
+                                let current_mode = state.mode();
                                 tauri::async_runtime::spawn(async move {
-                                    if let Err(e) = send_snapshot_to_collector(
-                                        &cfg.endpoint,
-                                        &cfg.token,
-                                        &app_name,
-                                        &title,
-                                        jpeg_data,
-                                    ).await {
-                                        eprintln!("[ChatContextCapture] Upload snapshot error: {e}");
+                                    if current_mode == "local_ocr" {
+                                        let ocr = NativeOcr::new();
+                                        match ocr.recognize_bytes(&jpeg_data).await {
+                                            Ok(res) => {
+                                                let mut messages = Vec::new();
+                                                for line in res.text.lines() {
+                                                    let trimmed = line.trim();
+                                                    if trimmed.is_empty() {
+                                                        continue;
+                                                    }
+                                                    messages.push(StoredDialogueMessage {
+                                                        speaker: "chat".to_string(),
+                                                        role: "user".to_string(),
+                                                        content: trimmed.to_string(),
+                                                    });
+                                                }
+                                                if !messages.is_empty() {
+                                                    let payload = ContextSnapshotPayload {
+                                                        captured_at: chrono::Utc::now().to_rfc3339(),
+                                                        source_app: &app_name,
+                                                        window_title: &title,
+                                                        engine: Some("local_ocr"),
+                                                        image_format: None,
+                                                        image_base64: None,
+                                                        messages: Some(messages),
+                                                    };
+                                                    if let Err(e) = send_context_snapshot_to_collector(
+                                                        &cfg.endpoint,
+                                                        &cfg.token,
+                                                        &payload,
+                                                    ).await {
+                                                        eprintln!("[ChatContextCapture] Upload local OCR failed: {e}");
+                                                    } else {
+                                                        println!("[ChatContextCapture] Successfully uploaded local OCR snapshot for {app_name} - {title}");
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                eprintln!("[ChatContextCapture] Local OCR recognition failed: {e}");
+                                            }
+                                        }
                                     } else {
-                                        println!("[ChatContextCapture] Successfully uploaded snapshot for {app_name} - {title}");
+                                        use base64::Engine;
+                                        let b64 = base64::engine::general_purpose::STANDARD.encode(&jpeg_data);
+                                        let payload = ContextSnapshotPayload {
+                                            captured_at: chrono::Utc::now().to_rfc3339(),
+                                            source_app: &app_name,
+                                            window_title: &title,
+                                            engine: Some("cloud_llm"),
+                                            image_format: Some("jpeg"),
+                                            image_base64: Some(b64),
+                                            messages: None,
+                                        };
+                                        if let Err(e) = send_context_snapshot_to_collector(
+                                            &cfg.endpoint,
+                                            &cfg.token,
+                                            &payload,
+                                        ).await {
+                                            eprintln!("[ChatContextCapture] Upload snapshot error: {e}");
+                                        } else {
+                                            println!("[ChatContextCapture] Successfully uploaded snapshot for {app_name} - {title}");
+                                        }
                                     }
                                 });
                             } else {
