@@ -2,6 +2,27 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.21",
+      "publishedAt": "2026-11-01",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-21",
+      "summary": {
+        "zh-CN": "修复 Windows 平台下聊天截屏探针的 Win32 FFI 与字段访问控制编译错误，保证构建与发版流程顺畅运行。",
+        "en-US": "Fixed Windows Win32 FFI binding and visibility constraints in chat context capture monitor, ensuring clean compilation across CI/CD release pipelines."
+      },
+      "highlights": {
+        "zh-CN": [
+          "修复 Win32 PrintWindow 系统调用与 GDI 兼容性，采用原生系统符号绑定，提升全版本 Windows 兼容性。",
+          "修复 ClipboardManager 内部仓储访问权限，确保聊天上下文监控守护线程正常读取 Collector 服务端上传配置。",
+          "统一图片缓冲内存写入管道，通过 Cursor 内存流直写 JPEG，避免高频截帧内存抖动。"
+        ],
+        "en-US": [
+          "Fixed Win32 PrintWindow FFI linkage and GDI compatibility with direct system symbol declarations for reliable Windows desktop execution.",
+          "Exposed configuration repository accessor in ClipboardManager to ensure the context capture monitor seamlessly loads collector sync credentials.",
+          "Streamlined memory buffer encoding via Cursor-backed JPEG streams to eliminate memory jitter during high-frequency diff checks."
+        ]
+      }
+    },
+    {
       "version": "0.6.20",
       "publishedAt": "2026-11-01",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-20",

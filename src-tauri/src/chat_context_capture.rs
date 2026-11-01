@@ -38,10 +38,14 @@ pub struct ContextSnapshotPayload<'a> {
 
 #[cfg(target_os = "windows")]
 mod platform_impl {
-    use super::*;
+    use std::io::Cursor;
     use windows::Win32::Foundation::*;
     use windows::Win32::Graphics::Gdi::*;
     use windows::Win32::UI::WindowsAndMessaging::*;
+
+    extern "system" {
+        fn PrintWindow(hwnd: HWND, hdcblt: HDC, nflags: u32) -> BOOL;
+    }
 
     pub struct WindowCaptureResult {
         pub hash: String,
@@ -93,7 +97,7 @@ mod platform_impl {
             let old_obj = SelectObject(hdc_mem, hbm);
 
             // Try PrintWindow first (PW_RENDERFULLCONTENT = 2)
-            let printed = PrintWindow(hwnd, hdc_mem, PRINT_WINDOW_FLAGS(2));
+            let printed = PrintWindow(hwnd, hdc_mem, 2);
             if !printed.as_bool() {
                 let hdc_window = GetDC(hwnd);
                 let _ = BitBlt(hdc_mem, 0, 0, width, height, hdc_window, 0, 0, SRCCOPY);
@@ -160,11 +164,14 @@ mod platform_impl {
             }
 
             let rgb_image = image::RgbImage::from_raw(width as u32, height as u32, rgb_buffer)?;
-            let mut jpeg_bytes = Vec::new();
-            let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg_bytes, 75);
-            encoder.encode_image(&rgb_image).ok()?;
+            let dynamic_img = image::DynamicImage::ImageRgb8(rgb_image);
+            let mut jpeg_buf = Cursor::new(Vec::new());
+            dynamic_img.write_to(&mut jpeg_buf, image::ImageFormat::Jpeg).ok()?;
 
-            Some(WindowCaptureResult { hash, jpeg_bytes })
+            Some(WindowCaptureResult {
+                hash,
+                jpeg_bytes: jpeg_buf.into_inner(),
+            })
         }
     }
 }
@@ -274,7 +281,7 @@ pub fn start_chat_context_monitor(
                     // Settled after change! Trigger snapshot sync
                     dirty = false;
                     if let Some(jpeg_data) = pending_jpeg.take() {
-                        let collector_cfg = manager.config_repo.load_collector_config().await.ok().flatten();
+                        let collector_cfg = manager.config_repo().load_collector_config().await.ok().flatten();
                         if let Some(cfg) = collector_cfg {
                             if cfg.enabled && !cfg.endpoint.is_empty() && !cfg.token.is_empty() {
                                 let app_name = pending_app.clone();

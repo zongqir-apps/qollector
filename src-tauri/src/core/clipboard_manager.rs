@@ -157,6 +157,10 @@ impl ClipboardManager {
         self.platform.get_active_window_info()
     }
 
+    pub fn config_repo(&self) -> &Arc<ConfigRepository> {
+        &self.config_repo
+    }
+
     /// Store a settled focused-input snapshot without modifying the system clipboard.
     pub async fn record_input_snapshot(
         &self,
