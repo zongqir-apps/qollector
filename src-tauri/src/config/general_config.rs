@@ -58,6 +58,9 @@ pub struct GeneralConfig {
     /// Capture settled text from supported focused input controls on Windows.
     #[serde(default)]
     pub input_capture_enabled: bool,
+    /// Capture conversation context snapshots from chat windows (WeChat/WeCom) on Windows.
+    #[serde(default)]
+    pub chat_context_capture_enabled: bool,
     /// Enable copy-on-select on Windows.
     #[serde(default)]
     pub copy_on_select_enabled: bool,
@@ -160,6 +163,7 @@ impl Default for GeneralConfig {
             auto_layout_switch_enabled: default_auto_layout_switch_enabled(),
             accent_color: default_accent_color(),
             input_capture_enabled: false,
+            chat_context_capture_enabled: false,
             copy_on_select_enabled: false,
             copy_on_select_double_click_enabled: default_copy_on_select_double_click_enabled(),
             copy_on_select_smart_replace_enabled: default_copy_on_select_smart_replace_enabled(),
