@@ -282,6 +282,34 @@
   font: inherit;
 }
 
+.chat-context-probe-result {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.chat-context-probe-result.success {
+  border-color: color-mix(in srgb, var(--success-color, #2f9e44) 45%, var(--border-light));
+}
+
+.chat-context-probe-result.warning {
+  border-color: color-mix(in srgb, var(--warning-color, #f59f00) 45%, var(--border-light));
+}
+
+.chat-context-probe-result.error {
+  border-color: color-mix(in srgb, var(--danger-color, #d94841) 45%, var(--border-light));
+}
+
+.chat-context-probe-result strong {
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
 .settings-anchor-target {
   scroll-margin-top: 10px;
   border-radius: 10px;

@@ -40,7 +40,7 @@ use commands::ocr_commands::*;
 use commands::prompt_commands::*;
 use commands::share_commands::*;
 use commands::workbench_commands::*;
-use chat_context_capture::{start_chat_context_monitor, ChatContextCaptureState};
+use chat_context_capture::{probe_and_send_chat_context, start_chat_context_monitor, ChatContextCaptureState};
 use copy_on_select::{start_copy_on_select_monitor, CopyOnSelectState};
 use core::clipboard_manager::ClipboardManager;
 use parking_lot::Mutex;
@@ -756,6 +756,7 @@ fn main() {
             get_general_config,
             update_general_config,
             probe_focused_text,
+            probe_and_send_chat_context,
             get_collector_config,
             update_collector_config,
             test_collector_connection,

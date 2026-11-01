@@ -75,6 +75,8 @@ mod platform_impl {
 
     pub struct WindowCaptureResult {
         pub hash: String,
+        pub width: i32,
+        pub height: i32,
         pub jpeg_bytes: Vec<u8>,
     }
 
@@ -199,6 +201,8 @@ mod platform_impl {
 
             Some(WindowCaptureResult {
                 hash,
+                width,
+                height,
                 jpeg_bytes: jpeg_buf.into_inner(),
             })
         }
@@ -389,4 +393,321 @@ pub fn start_chat_context_monitor(
             }
         }
     });
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ChatContextProbeResult {
+    pub is_chat_target: bool,
+    pub source_app: String,
+    pub window_title: String,
+    pub window_width: i32,
+    pub window_height: i32,
+    pub captured: bool,
+    pub image_size_bytes: usize,
+    pub image_preview_base64: Option<String>,
+    pub engine: String,
+    pub collector_ready: bool,
+    pub collector_endpoint: Option<String>,
+    pub uploaded: bool,
+    pub message_count: usize,
+    pub messages_preview: Vec<String>,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn probe_and_send_chat_context(
+    manager: tauri::State<'_, Arc<ClipboardManager>>,
+    state: tauri::State<'_, Arc<ChatContextCaptureState>>,
+    delay_ms: Option<u64>,
+) -> Result<ChatContextProbeResult, String> {
+    let delay = delay_ms.unwrap_or(2_500).clamp(500, 10_000);
+    tokio::time::sleep(Duration::from_millis(delay)).await;
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = manager;
+        Ok(ChatContextProbeResult {
+            is_chat_target: false,
+            source_app: "Unsupported".to_string(),
+            window_title: "".to_string(),
+            window_width: 0,
+            window_height: 0,
+            captured: false,
+            image_size_bytes: 0,
+            image_preview_base64: None,
+            engine: state.mode(),
+            collector_ready: false,
+            collector_endpoint: None,
+            uploaded: false,
+            message_count: 0,
+            messages_preview: Vec::new(),
+            error: Some("Chat context capture is currently supported on Windows only".to_string()),
+        })
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let metadata = match manager.get_active_window_info() {
+            Ok(meta) => meta,
+            Err(e) => {
+                return Ok(ChatContextProbeResult {
+                    is_chat_target: false,
+                    source_app: "Unknown".to_string(),
+                    window_title: "".to_string(),
+                    window_width: 0,
+                    window_height: 0,
+                    captured: false,
+                    image_size_bytes: 0,
+                    image_preview_base64: None,
+                    engine: state.mode(),
+                    collector_ready: false,
+                    collector_endpoint: None,
+                    uploaded: false,
+                    message_count: 0,
+                    messages_preview: Vec::new(),
+                    error: Some(format!("Failed to get active window: {e}")),
+                });
+            }
+        };
+
+        let is_target = platform_impl::is_chat_target(&metadata.source_app, &metadata.window_title);
+        let hwnd_val = match platform_impl::get_foreground_hwnd() {
+            Some(v) => v,
+            None => {
+                return Ok(ChatContextProbeResult {
+                    is_chat_target: is_target,
+                    source_app: metadata.source_app,
+                    window_title: metadata.window_title,
+                    window_width: 0,
+                    window_height: 0,
+                    captured: false,
+                    image_size_bytes: 0,
+                    image_preview_base64: None,
+                    engine: state.mode(),
+                    collector_ready: false,
+                    collector_endpoint: None,
+                    uploaded: false,
+                    message_count: 0,
+                    messages_preview: Vec::new(),
+                    error: Some("GetForegroundWindow returned invalid HWND".to_string()),
+                });
+            }
+        };
+
+        let capture = tokio::task::spawn_blocking(move || platform_impl::capture_window(hwnd_val))
+            .await
+            .ok()
+            .flatten();
+
+        let Some(capture) = capture else {
+            return Ok(ChatContextProbeResult {
+                is_chat_target: is_target,
+                source_app: metadata.source_app,
+                window_title: metadata.window_title,
+                window_width: 0,
+                window_height: 0,
+                captured: false,
+                image_size_bytes: 0,
+                image_preview_base64: None,
+                engine: state.mode(),
+                collector_ready: false,
+                collector_endpoint: None,
+                uploaded: false,
+                message_count: 0,
+                messages_preview: Vec::new(),
+                error: Some("capture_window failed (window may be minimized, size <= 100x100, or PrintWindow failed)".to_string()),
+            });
+        };
+
+        use base64::Engine;
+        let preview_b64 = base64::engine::general_purpose::STANDARD.encode(&capture.jpeg_bytes);
+        let image_size = capture.jpeg_bytes.len();
+        let engine_mode = state.mode();
+
+        let collector_cfg = manager.config_repo().load_collector_config().await.ok().flatten();
+        let (collector_ready, endpoint, token) = match collector_cfg {
+            Some(cfg) if cfg.enabled && !cfg.endpoint.is_empty() && !cfg.token.is_empty() => {
+                (true, Some(cfg.endpoint), Some(cfg.token))
+            }
+            Some(cfg) => (false, Some(cfg.endpoint), None),
+            None => (false, None, None),
+        };
+
+        if !collector_ready {
+            return Ok(ChatContextProbeResult {
+                is_chat_target: is_target,
+                source_app: metadata.source_app,
+                window_title: metadata.window_title,
+                window_width: capture.width,
+                window_height: capture.height,
+                captured: true,
+                image_size_bytes: image_size,
+                image_preview_base64: Some(preview_b64),
+                engine: engine_mode,
+                collector_ready: false,
+                collector_endpoint: endpoint,
+                uploaded: false,
+                message_count: 0,
+                messages_preview: Vec::new(),
+                error: Some("Collector not configured or enabled (configure URL and token below)".to_string()),
+            });
+        }
+
+        let endpoint_str = endpoint.unwrap();
+        let token_str = token.unwrap();
+
+        if engine_mode == "local_ocr" {
+            let ocr = NativeOcr::new();
+            match ocr.recognize_bytes(&capture.jpeg_bytes).await {
+                Ok(res) => {
+                    let mut messages = Vec::new();
+                    let mut previews = Vec::new();
+                    for line in res.text.lines() {
+                        let trimmed = line.trim();
+                        if !trimmed.is_empty() {
+                            messages.push(StoredDialogueMessage {
+                                speaker: "chat".to_string(),
+                                role: "user".to_string(),
+                                content: trimmed.to_string(),
+                            });
+                            if previews.len() < 5 {
+                                previews.push(trimmed.to_string());
+                            }
+                        }
+                    }
+                    let count = messages.len();
+                    if messages.is_empty() {
+                        return Ok(ChatContextProbeResult {
+                            is_chat_target: is_target,
+                            source_app: metadata.source_app,
+                            window_title: metadata.window_title,
+                            window_width: capture.width,
+                            window_height: capture.height,
+                            captured: true,
+                            image_size_bytes: image_size,
+                            image_preview_base64: Some(preview_b64),
+                            engine: engine_mode,
+                            collector_ready: true,
+                            collector_endpoint: Some(endpoint_str),
+                            uploaded: false,
+                            message_count: 0,
+                            messages_preview: Vec::new(),
+                            error: Some("Local OCR extracted 0 text lines from the image".to_string()),
+                        });
+                    }
+
+                    let payload = ContextSnapshotPayload {
+                        captured_at: chrono::Utc::now().to_rfc3339(),
+                        source_app: &metadata.source_app,
+                        window_title: &metadata.window_title,
+                        engine: Some("local_ocr"),
+                        image_format: None,
+                        image_base64: None,
+                        messages: Some(messages),
+                    };
+
+                    match send_context_snapshot_to_collector(&endpoint_str, &token_str, &payload).await {
+                        Ok(()) => Ok(ChatContextProbeResult {
+                            is_chat_target: is_target,
+                            source_app: metadata.source_app,
+                            window_title: metadata.window_title,
+                            window_width: capture.width,
+                            window_height: capture.height,
+                            captured: true,
+                            image_size_bytes: image_size,
+                            image_preview_base64: Some(preview_b64),
+                            engine: engine_mode,
+                            collector_ready: true,
+                            collector_endpoint: Some(endpoint_str),
+                            uploaded: true,
+                            message_count: count,
+                            messages_preview: previews,
+                            error: None,
+                        }),
+                        Err(e) => Ok(ChatContextProbeResult {
+                            is_chat_target: is_target,
+                            source_app: metadata.source_app,
+                            window_title: metadata.window_title,
+                            window_width: capture.width,
+                            window_height: capture.height,
+                            captured: true,
+                            image_size_bytes: image_size,
+                            image_preview_base64: Some(preview_b64),
+                            engine: engine_mode,
+                            collector_ready: true,
+                            collector_endpoint: Some(endpoint_str),
+                            uploaded: false,
+                            message_count: count,
+                            messages_preview: previews,
+                            error: Some(format!("Upload to Collector failed: {e}")),
+                        }),
+                    }
+                }
+                Err(e) => Ok(ChatContextProbeResult {
+                    is_chat_target: is_target,
+                    source_app: metadata.source_app,
+                    window_title: metadata.window_title,
+                    window_width: capture.width,
+                    window_height: capture.height,
+                    captured: true,
+                    image_size_bytes: image_size,
+                    image_preview_base64: Some(preview_b64),
+                    engine: engine_mode,
+                    collector_ready: true,
+                    collector_endpoint: Some(endpoint_str),
+                    uploaded: false,
+                    message_count: 0,
+                    messages_preview: Vec::new(),
+                    error: Some(format!("Local OCR engine failed: {e}")),
+                }),
+            }
+        } else {
+            let payload = ContextSnapshotPayload {
+                captured_at: chrono::Utc::now().to_rfc3339(),
+                source_app: &metadata.source_app,
+                window_title: &metadata.window_title,
+                engine: Some("cloud_llm"),
+                image_format: Some("jpeg"),
+                image_base64: Some(preview_b64.clone()),
+                messages: None,
+            };
+
+            match send_context_snapshot_to_collector(&endpoint_str, &token_str, &payload).await {
+                Ok(()) => Ok(ChatContextProbeResult {
+                    is_chat_target: is_target,
+                    source_app: metadata.source_app,
+                    window_title: metadata.window_title,
+                    window_width: capture.width,
+                    window_height: capture.height,
+                    captured: true,
+                    image_size_bytes: image_size,
+                    image_preview_base64: Some(preview_b64),
+                    engine: engine_mode,
+                    collector_ready: true,
+                    collector_endpoint: Some(endpoint_str),
+                    uploaded: true,
+                    message_count: 0,
+                    messages_preview: Vec::new(),
+                    error: None,
+                }),
+                Err(e) => Ok(ChatContextProbeResult {
+                    is_chat_target: is_target,
+                    source_app: metadata.source_app,
+                    window_title: metadata.window_title,
+                    window_width: capture.width,
+                    window_height: capture.height,
+                    captured: true,
+                    image_size_bytes: image_size,
+                    image_preview_base64: Some(preview_b64),
+                    engine: engine_mode,
+                    collector_ready: true,
+                    collector_endpoint: Some(endpoint_str),
+                    uploaded: false,
+                    message_count: 0,
+                    messages_preview: Vec::new(),
+                    error: Some(format!("Upload snapshot to Collector failed: {e}")),
+                }),
+            }
+        }
+    }
 }

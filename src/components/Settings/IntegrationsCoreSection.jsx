@@ -102,8 +102,33 @@ function IntegrationsCoreSection({
 }) {
   const [inputProbePending, setInputProbePending] = useState(false);
   const [inputProbeResult, setInputProbeResult] = useState(null);
+  const [chatProbePending, setChatProbePending] = useState(false);
+  const [chatProbeResult, setChatProbeResult] = useState(null);
   const inputCaptureSupported = supportsInputCapture();
   const lastSync = formatSyncTime(collectorStatus.last_sync_at);
+
+  const runChatContextProbe = async () => {
+    setChatProbePending(true);
+    setChatProbeResult(null);
+    const appWindow = getCurrentWindow();
+    const probe = invoke('probe_and_send_chat_context', { delayMs: 2500 });
+
+    try {
+      await appWindow.hide();
+      const result = await probe;
+      setChatProbeResult({
+        type: result.uploaded ? 'success' : (result.captured ? 'warning' : 'error'),
+        result,
+      });
+    } catch (error) {
+      console.error('Chat context probe failed:', error);
+      setChatProbeResult({ type: 'error', error: String(error) });
+    } finally {
+      await appWindow.show().catch(() => {});
+      await appWindow.setFocus().catch(() => {});
+      setChatProbePending(false);
+    }
+  };
 
   const runInputAccessProbe = async () => {
     setInputProbePending(true);
@@ -328,6 +353,103 @@ function IntegrationsCoreSection({
                         </div>
                       </div>
                     </label>
+                  </div>
+
+                  <div className="chat-context-probe-tools" style={{ marginTop: '1rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
+                    <small className="setting-hint">{t('settings.general.chatContextProbeHint')}</small>
+                    <div className="setting-action-row" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className="test-btn"
+                        disabled={chatProbePending}
+                        onClick={runChatContextProbe}
+                      >
+                        {chatProbePending
+                          ? t('settings.general.chatContextProbeRunning')
+                          : t('settings.general.chatContextProbeAction')}
+                      </button>
+                    </div>
+
+                    {chatProbeResult?.result && (
+                      <div
+                        className={`chat-context-probe-result ${chatProbeResult.type}`}
+                        role="status"
+                        style={{ marginTop: '0.75rem' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong>
+                            {chatProbeResult.result.source_app || 'Unknown'} · {chatProbeResult.result.window_title || '(无标题)'}
+                          </strong>
+                          <span
+                            className={`badge ${chatProbeResult.result.is_chat_target ? 'badge-success' : 'badge-warning'}`}
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: chatProbeResult.result.is_chat_target
+                                ? 'color-mix(in srgb, var(--success-color, #2f9e44) 15%, transparent)'
+                                : 'color-mix(in srgb, var(--warning-color, #f59f00) 15%, transparent)',
+                              color: chatProbeResult.result.is_chat_target
+                                ? 'var(--success-color, #2f9e44)'
+                                : 'var(--warning-color, #f59f00)',
+                            }}
+                          >
+                            {chatProbeResult.result.is_chat_target
+                              ? t('settings.general.chatContextProbeTargetHit')
+                              : t('settings.general.chatContextProbeTargetMiss')}
+                          </span>
+                        </div>
+
+                        {chatProbeResult.result.captured && (
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            {t('settings.general.chatContextProbeCaptured', {
+                              width: chatProbeResult.result.window_width,
+                              height: chatProbeResult.result.window_height,
+                              size: Math.round(chatProbeResult.result.image_size_bytes / 1024),
+                            })}
+                          </div>
+                        )}
+
+                        {chatProbeResult.result.image_preview_base64 && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                              {t('settings.general.chatContextProbePreview')}
+                            </div>
+                            <img
+                              src={`data:image/jpeg;base64,${chatProbeResult.result.image_preview_base64}`}
+                              alt="Captured Preview"
+                              style={{
+                                maxWidth: '100%',
+                                maxHeight: '180px',
+                                objectFit: 'contain',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-light)',
+                                background: '#111',
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {chatProbeResult.result.uploaded ? (
+                          <div style={{ color: 'var(--success-color, #2f9e44)', fontWeight: 500, marginTop: '0.25rem' }}>
+                            ✅ {t('settings.general.chatContextProbeUploadSuccess')}
+                            {chatProbeResult.result.engine === 'local_ocr' && ` (${chatProbeResult.result.message_count} 条)`}
+                          </div>
+                        ) : (
+                          chatProbeResult.result.error && (
+                            <div style={{ color: 'var(--danger-color, #d94841)', marginTop: '0.25rem' }}>
+                              ❌ {t('settings.general.chatContextProbeUploadFailed', { error: chatProbeResult.result.error })}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {chatProbeResult?.error && (
+                      <small className="setting-status setting-status-emphasis error" role="alert" style={{ marginTop: '0.5rem', display: 'block' }}>
+                        {t('settings.general.chatContextProbeUploadFailed', { error: chatProbeResult.error })}
+                      </small>
+                    )}
                   </div>
                 </div>
               )}

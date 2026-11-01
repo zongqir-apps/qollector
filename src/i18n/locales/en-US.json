@@ -534,7 +534,16 @@
       "chatContextCaptureModeLocalOcr": "Local OCR mode (Recommended)",
       "chatContextCaptureModeLocalOcrDesc": "Uses Windows native OCR to extract text locally (30ms) and uploads only plain text to Collector. 0 cost, instant, and privacy-first.",
       "chatContextCaptureModeCloudLlm": "Server Vision AI mode",
-      "chatContextCaptureModeCloudLlmDesc": "Uploads chat snapshots to Collector, which invokes server Vision AI (e.g. SiliconFlow Qwen-VL) to extract speakers and dialogue (consumes API tokens)."
+      "chatContextCaptureModeCloudLlmDesc": "Uploads chat snapshots to Collector, which invokes server Vision AI (e.g. SiliconFlow Qwen-VL) to extract speakers and dialogue (consumes API tokens).",
+      "chatContextProbeHint": "Clicking test hides this window for 2.5s, captures the active foreground chat window, and tests upload to Collector:",
+      "chatContextProbeAction": "Test Capture & Send Current Chat Window",
+      "chatContextProbeRunning": "Capturing (please switch to chat window)...",
+      "chatContextProbeTargetHit": "Matched chat window whitelist",
+      "chatContextProbeTargetMiss": "Not matched in chat whitelist (not WeChat/WeCom)",
+      "chatContextProbeCaptured": "Captured: {{width}}x{{height}}, size {{size}} KB",
+      "chatContextProbeUploadSuccess": "Successfully synced to Collector",
+      "chatContextProbeUploadFailed": "Upload failed: {{error}}",
+      "chatContextProbePreview": "Captured snapshot preview:"
     },
     "collector": {
       "title": "Self-hosted analysis collector",

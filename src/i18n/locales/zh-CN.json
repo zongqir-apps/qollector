@@ -508,7 +508,16 @@
       "chatContextCaptureModeLocalOcr": "本地 OCR 模式（推荐）",
       "chatContextCaptureModeLocalOcrDesc": "使用 Windows 原生 OCR 在本地极速提取文字（30ms），仅上传纯文本到 Collector。0 费用、极速、无截图泄露风险。",
       "chatContextCaptureModeCloudLlm": "服务端大模型模式",
-      "chatContextCaptureModeCloudLlmDesc": "向 Collector 上传截图，由服务端调用视觉 AI（如硅基流动 Qwen-VL）深度解析发言角色与上下文（单次消耗 Token）。"
+      "chatContextCaptureModeCloudLlmDesc": "向 Collector 上传截图，由服务端调用视觉 AI（如硅基流动 Qwen-VL）深度解析发言角色与上下文（单次消耗 Token）。",
+      "chatContextProbeHint": "点击测试时，本窗口将自动隐藏 2.5 秒，自动抓取前台活动聊天窗口并尝试发送到 Collector 进行连通与画面诊断：",
+      "chatContextProbeAction": "测试捕获并发送当前聊天窗口",
+      "chatContextProbeRunning": "正在捕获中（请切至目标聊天窗口）...",
+      "chatContextProbeTargetHit": "已命中聊天窗口白名单",
+      "chatContextProbeTargetMiss": "未命中聊天窗口白名单（非微信/企微）",
+      "chatContextProbeCaptured": "截图成功：{{width}}x{{height}}，体积 {{size}} KB",
+      "chatContextProbeUploadSuccess": "已成功同步发送到 Collector",
+      "chatContextProbeUploadFailed": "发送失败：{{error}}",
+      "chatContextProbePreview": "捕获画面实时预览："
     },
     "collector": {
       "title": "自托管分析收集",

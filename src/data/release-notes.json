@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.24",
+      "publishedAt": "2026-11-01",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-24",
+      "summary": {
+        "zh-CN": "新增聊天上下文捕获可视化诊断面板与手动测试发送入口，支持自动切屏捕获、画面缩略图实时预览与全要素连通性诊断。",
+        "en-US": "Added interactive diagnostic tools and a manual 'Test Capture & Send' action for chat context perception, complete with live snapshot previews and target detection."
+      },
+      "highlights": {
+        "zh-CN": [
+          "新增『测试捕获并发送当前聊天窗口』快捷入口：点击后窗口自动隐藏 2.5 秒，即刻捕获前台活动窗口并执行完整上报链路，无需依赖后台 10 秒静止等待。",
+          "新增捕获诊断面板：实时展示前台应用名称、窗口标题与白名单命中判定（精准识别微信/企业微信）。",
+          "新增截获画面微缩图预览：直观呈现截获的聊天界面截图，毫秒级肉眼排查硬件加速黑屏或截图异常。",
+          "新增全链路连通性与提取诊断：直观反馈图片尺寸体积、本地 OCR 识别行数或服务端大模型上传状态与错误提示。"
+        ],
+        "en-US": [
+          "Added 'Test Capture & Send Current Chat Window' button in Settings: auto-hides window for 2.5s, immediately captures active chat app and triggers upload without waiting for background debounce.",
+          "Introduced real-time diagnostic panel: displays active window application name, window title, and whitelist matching status for WeChat and WeCom.",
+          "Added live snapshot thumbnail preview: renders captured screenshot directly in Settings for instant visual verification against hardware-accelerated black screens.",
+          "Full-link upload and extraction feedback: reports window dimensions, payload size, OCR extracted lines, or vision AI upload responses."
+        ]
+      }
+    },
+    {
       "version": "0.6.23",
       "publishedAt": "2026-11-01",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-23",
