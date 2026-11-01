@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.23",
+      "publishedAt": "2026-11-01",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-23",
+      "summary": {
+        "zh-CN": "新增聊天上下文双引擎架构（本地原生 OCR 与服务端大模型双模式），引入 10 秒自然对话防抖与输入光标闪烁过滤。",
+        "en-US": "Introduced dual-engine chat context capture (Local Native OCR and Server Vision AI modes) with a 10-second conversational lull debounce and input cursor flicker rejection."
+      },
+      "highlights": {
+        "zh-CN": [
+          "新增双引擎模式单选：支持『本地 OCR 模式』（Windows 原生 OCR，0 费用、极速 30ms、绝密隐私直传纯文本）与『服务端大模型模式』（上传截图由服务端 Qwen-VL 深度解析角色）。",
+          "将聊天上下文沉淀防抖时间科学调整为 10 秒，完美贴合人与人之间一问一答的真实节奏，既完整保留回合上下文，又防止早先消息滚出可视区域。",
+          "画面指纹采样自动剔除底部 20% 输入框区域，杜绝打字光标闪烁引发的误报与重复无效截屏。",
+          "Collector 服务端同步升级：支持直接接收本地 OCR 提炼的对话流并即刻入库，跳过云端模型调用，彻底节省 Token 消耗。"
+        ],
+        "en-US": [
+          "Added dual-engine mode selector in Settings: choose between 'Local OCR Mode' (Windows Native OCR, 0 cost, 30ms instant, privacy-first text stream) and 'Server Vision AI Mode' (screenshot uploaded for deep dialogue parsing).",
+          "Tuned conversational settle debounce to 10 seconds, matching natural human back-and-forth cadence to preserve full Q&A context before messages scroll out of viewport.",
+          "Excluded bottom 20% input region from hash diff calculation, eliminating false-positive triggers caused by blinking input cursors.",
+          "Upgraded Collector server to accept pre-extracted dialogue message streams directly, bypassing cloud vision APIs to save tokens."
+        ]
+      }
+    },
+    {
       "version": "0.6.22",
       "publishedAt": "2026-11-01",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-22",
