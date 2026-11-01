@@ -1205,9 +1205,15 @@ function CollectionBoard({
       );
     }
 
+    const userNote = typeof item?.user_note === 'string' ? item.user_note.trim() : '';
     return (
       <div className="collection-card-text panel-card-content-text">
-        {getContentPreview(item.content || item.user_note || item.ocr_text || '')}
+        {userNote && (
+          <div className="compact-card-alias-header" title={userNote}>
+            <span className="compact-card-alias-tag">{userNote}</span>
+          </div>
+        )}
+        {getContentPreview(item.content || item.ocr_text || '')}
       </div>
     );
   }, [isCollectionListMode, translatedItemIds, t]);

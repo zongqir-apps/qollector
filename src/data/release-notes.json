@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.19",
+      "publishedAt": "2026-11-01",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-19",
+      "summary": {
+        "zh-CN": "重构收藏高频快捷输入体验：搜索结果中收藏项绝对置顶、支持纯英文状态下拼音首字母/全拼盲打过滤、卡片备注提权为主标题，并新增 Ctrl+N/P 键盘极速游标导航。",
+        "en-US": "Revamped quick snippet input: strictly prioritize favorited items in search results, support instant Pinyin initials/full pinyin filtering, promote notes to card headlines, and add Ctrl+N/P keyboard cursor navigation."
+      },
+      "highlights": {
+        "zh-CN": [
+          "搜索收藏绝对置顶：常态下保留最新剪贴首位展示，一旦敲字过滤，命中的收藏项（常用语/模板）无条件锁定排在第 1 行，按回车直接秒贴上屏。",
+          "拼音首字母/全拼无感盲打：引入轻量拼音检索能力，在编写代码或英文输入法状态下无需按 Shift 切中文，直接打 fp（发票）、dz（地址）、yx（邮箱）等拼音缩写即可瞬间高亮命中中文常用语。",
+          "卡片备注（Note）提权为醒目标题：有备注的内容在卡片内容区顶部以专属别名徽章呈现，一眼辨识内容用途，降低扫描晦涩长字符串的心智负担。",
+          "搜索结果键盘主区极速导航：支持在搜索输入框与主列表中使用 Ctrl+N / Ctrl+P（及 Ctrl+J / Ctrl+K）上下移动选中光标，双手不离打字主键盘区即可快速完成选条与 Enter 发射。"
+        ],
+        "en-US": [
+          "Search Favorited Snippet Prioritization: Recent clipboards stay at top during idle browsing, while active search queries unconditionally prioritize matched favorites at index 0 for immediate Enter-to-paste execution.",
+          "Pinyin Initials & Full Pinyin Filtering: Integrated lightweight pinyin matching allowing users in English IME state to type shorthand initials like fp (发票), dz (地址), or yx (邮箱) without cumbersome IME toggling.",
+          "Promote Card Notes to Headline Badges: Items with user notes now display prominent alias badges directly above content previews, eliminating visual clutter when recognizing arbitrary numbers or templates.",
+          "Home-Row Keyboard Cursor Navigation: Added Ctrl+N / Ctrl+P (and Ctrl+J / Ctrl+K) cursor movement in search input and stream list so users can navigate and paste without reaching for arrow keys."
+        ]
+      }
+    },
+    {
       "version": "0.6.18",
       "publishedAt": "2026-10-30",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-18",

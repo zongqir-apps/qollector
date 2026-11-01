@@ -1498,6 +1498,29 @@
   -webkit-user-select: none;
 }
 
+.compact-card-alias-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
+.compact-card-alias-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-color);
+  background: var(--accent-bg-soft);
+  border: 1px solid var(--accent-border-soft);
+  border-radius: var(--card-tag-radius);
+  padding: 1px 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .compact-card-tags {
   display: flex;
   flex-wrap: wrap;

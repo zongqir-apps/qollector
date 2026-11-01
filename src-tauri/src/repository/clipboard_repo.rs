@@ -1159,7 +1159,8 @@ impl ClipboardRepository {
             }
 
             if !merged_items.is_empty() {
-                // Keep FTS matches first; tag LIKE matches are supplemental recall.
+                // Keep favorites first for instant quick snippet recall
+                merged_items.sort_by(|a, b| b.is_favorite.cmp(&a.is_favorite));
                 merged_items.truncate(limit as usize);
                 return Ok(merged_items);
             }
@@ -1213,12 +1214,17 @@ impl ClipboardRepository {
         if !query.is_empty() {
             let escaped_query = query.replace('\'', "''");
             sql.push_str(&format!(
-                " AND (content LIKE '%{}%' OR ocr_text LIKE '%{}%')",
-                escaped_query, escaped_query
+                " AND (content LIKE '%{}%' OR ocr_text LIKE '%{}%' OR user_note LIKE '%{}%')",
+                escaped_query, escaped_query, escaped_query
             ));
         }
 
-        sql.push_str(&format!(" ORDER BY updated_at DESC LIMIT {}", limit));
+        let order_clause = if !query.is_empty() {
+            " ORDER BY is_favorite DESC, updated_at DESC LIMIT "
+        } else {
+            " ORDER BY updated_at DESC LIMIT "
+        };
+        sql.push_str(&format!("{}{}", order_clause, limit));
 
         let items = sqlx::query_as::<_, ClipboardItem>(&sql)
             .fetch_all(&self.pool)
@@ -1284,7 +1290,7 @@ impl ClipboardRepository {
         );
 
         sql.push_str(&format!(" AND LOWER(tags) LIKE '%{}%'", escaped_query));
-        sql.push_str(&format!(" ORDER BY updated_at DESC LIMIT {}", limit));
+        sql.push_str(&format!(" ORDER BY is_favorite DESC, updated_at DESC LIMIT {}", limit));
 
         let items = sqlx::query_as::<_, ClipboardItem>(&sql)
             .fetch_all(&self.pool)
@@ -2279,7 +2285,7 @@ impl ClipboardRepository {
                WHERE ci.is_deleted = 0
                AND clipboard_fts MATCH ?
                {}
-               ORDER BY ci.updated_at DESC
+               ORDER BY ci.is_favorite DESC, ci.updated_at DESC
                LIMIT ?"#,
             filter_sql,
             content_limit = LIGHT_CONTENT_PREVIEW_CHARS,

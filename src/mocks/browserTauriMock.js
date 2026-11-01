@@ -232,11 +232,25 @@ if (typeof window !== 'undefined' && !window.__TAURI_INTERNALS__) {
         if (filters.is_pinned != null) {
           filtered = filtered.filter((i) => Boolean(i.is_pinned) === Boolean(filters.is_pinned));
         }
+        if (filters.is_favorite != null) {
+          filtered = filtered.filter((i) => Boolean(i.is_favorite) === Boolean(filters.is_favorite));
+        }
         if (filters.workbench_id) {
           filtered = filtered.filter((i) => (i.workbench_id || 'default') === filters.workbench_id);
         }
         if (q) {
-          filtered = filtered.filter((i) => String(i.content || '').toLowerCase().includes(q));
+          filtered = filtered.filter((i) => {
+            const content = String(i.content || '').toLowerCase();
+            const note = String(i.user_note || '').toLowerCase();
+            const tags = String(i.tags || '').toLowerCase();
+            return content.includes(q) || note.includes(q) || tags.includes(q);
+          });
+          filtered.sort((a, b) => {
+            if (Boolean(b.is_favorite) !== Boolean(a.is_favorite)) {
+              return b.is_favorite ? 1 : -1;
+            }
+            return (b.updated_at || 0) - (a.updated_at || 0);
+          });
         }
         return filtered;
       }

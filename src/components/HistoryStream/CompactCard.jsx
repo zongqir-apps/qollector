@@ -623,17 +623,16 @@ function CompactCard({
             <Check size={16} /> {useAppStore.getState().lastCopyWasAutoPaste ? t('item.autoPasted') : t('item.copied')}
           </div>
         )}
+        {userNote && (
+          <div className="compact-card-alias-header panel-card-alias-header" title={userNote}>
+            <span className="compact-card-alias-tag">{userNote}</span>
+          </div>
+        )}
         {renderContent()}
       </div>
-      {(userNote || userTags.length > 0) && (
+      {visibleUserTags.length > 0 && (
         <div className="compact-card-footer panel-card-footer">
-          {userNote && (
-            <div className="compact-card-note panel-card-note" title={userNote}>
-              {userNote}
-            </div>
-          )}
-          {visibleUserTags.length > 0 && (
-            <div className="compact-card-tags panel-card-tags">
+          <div className="compact-card-tags panel-card-tags">
               {visibleUserTags.map(tag => (
                 <span
                   key={tag}
@@ -647,7 +646,6 @@ function CompactCard({
                 <span className="compact-tag panel-card-tag more">+{hiddenUserTagsCount}</span>
               )}
             </div>
-          )}
         </div>
       )}
     </div>

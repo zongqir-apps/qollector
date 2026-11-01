@@ -59,8 +59,11 @@ export default function useHistoryKeyboardNavigation({
   const handleSearchInputKeyDown = useCallback((e) => {
     if (e.nativeEvent?.isComposing || e.isComposing) return;
 
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (e.key === 'ArrowDown' && filteredItems.length === 0) {
+    const isDownKey = e.key === 'ArrowDown' || (e.ctrlKey && (e.key === 'n' || e.key === 'j'));
+    const isUpKey = e.key === 'ArrowUp' || (e.ctrlKey && (e.key === 'p' || e.key === 'k'));
+
+    if (isDownKey || isUpKey) {
+      if (isDownKey && filteredItems.length === 0) {
         const handled = onSearchArrowDownNoResults?.();
         if (handled) {
           e.preventDefault();
@@ -68,7 +71,7 @@ export default function useHistoryKeyboardNavigation({
         }
       }
       e.preventDefault();
-      moveFocusedSelection(e.key === 'ArrowDown' ? 1 : -1);
+      moveFocusedSelection(isDownKey ? 1 : -1);
       return;
     }
 
@@ -94,9 +97,12 @@ export default function useHistoryKeyboardNavigation({
 
       if (target?.closest('.workbench-panel') || document.activeElement?.closest?.('.workbench-panel')) return;
 
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const isDownKey = e.key === 'ArrowDown' || (e.ctrlKey && (e.key === 'n' || e.key === 'j'));
+      const isUpKey = e.key === 'ArrowUp' || (e.ctrlKey && (e.key === 'p' || e.key === 'k'));
+
+      if (isDownKey || isUpKey) {
         e.preventDefault();
-        moveFocusedSelection(e.key === 'ArrowDown' ? 1 : -1);
+        moveFocusedSelection(isDownKey ? 1 : -1);
         return;
       }
 

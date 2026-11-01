@@ -22,6 +22,7 @@ import { buildSearchRequest } from '../../utils/searchRequestBuilder';
 import { getUserTags, searchItems } from '../../services/clipboardService';
 import { sendClipboardItemViaEmail } from '../../services/emailRelayService';
 import { getAiRetrievalFromMetadata } from '../../utils/filenameNaming';
+import PinyinMatch from 'pinyin-match';
 
 const MEMORY_PROBE_PREFIX = '[MemoryProbe]';
 const toLen = (value) => (typeof value === 'string' ? value.length : 0);
@@ -57,10 +58,18 @@ const findFirstMatch = (text, terms) => {
   let best = null;
   terms.forEach((term) => {
     if (!term) return;
-    const index = normalizedLower.indexOf(term);
+    let index = normalizedLower.indexOf(term);
+    let matchedLength = term.length;
+    if (index < 0) {
+      const pinyinResult = PinyinMatch.match(normalized, term);
+      if (Array.isArray(pinyinResult) && pinyinResult.length >= 2) {
+        index = pinyinResult[0];
+        matchedLength = pinyinResult[1] - pinyinResult[0] + 1;
+      }
+    }
     if (index < 0) return;
     if (!best || index < best.index) {
-      best = { term, index };
+      best = { term: normalized.slice(index, index + matchedLength), index };
     }
   });
   return best;
@@ -695,6 +704,34 @@ function HistoryStream({ style }) {
     const shouldUseBackendBase = Array.isArray(backendSearchResults);
     const baseItems = shouldUseBackendBase ? backendSearchResults : items;
     let result = baseItems;
+
+    if (normalizedQuery.length > 0) {
+      const seenIds = new Set(baseItems.map((item) => item.id));
+      const pinyinSupplemental = [];
+      for (const item of items) {
+        if (!item || seenIds.has(item.id)) continue;
+        const note = item.user_note || '';
+        const content = typeof item.content === 'string' ? item.content : '';
+        const tags = typeof item.tags === 'string' ? item.tags : '';
+        if (
+          (note && PinyinMatch.match(note, normalizedQuery)) ||
+          (tags && PinyinMatch.match(tags, normalizedQuery)) ||
+          (content && PinyinMatch.match(content.slice(0, 300), normalizedQuery))
+        ) {
+          pinyinSupplemental.push(item);
+        }
+      }
+
+      const combined = pinyinSupplemental.length > 0 ? [...baseItems, ...pinyinSupplemental] : [...baseItems];
+      // When searching, strictly prioritize matching favorites at the top for instant quick snippet usage
+      combined.sort((a, b) => {
+        const favA = a.is_favorite ? 1 : 0;
+        const favB = b.is_favorite ? 1 : 0;
+        if (favA !== favB) return favB - favA;
+        return (b.updated_at || 0) - (a.updated_at || 0);
+      });
+      result = combined;
+    }
 
     filterProbeRef.current = {
       elapsedMs: Number((performance.now() - startedAt).toFixed(2)),
