@@ -1,4 +1,5 @@
 pub mod ai;
+pub mod chat_context_capture;
 pub mod commands;
 pub mod collector;
 pub mod config;

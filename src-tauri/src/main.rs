@@ -9,6 +9,7 @@ mod collector;
 mod config;
 mod copy_on_select;
 mod core;
+mod chat_context_capture;
 mod crash_log;
 mod email;
 mod http_client;
@@ -39,6 +40,7 @@ use commands::ocr_commands::*;
 use commands::prompt_commands::*;
 use commands::share_commands::*;
 use commands::workbench_commands::*;
+use chat_context_capture::{start_chat_context_monitor, ChatContextCaptureState};
 use copy_on_select::{start_copy_on_select_monitor, CopyOnSelectState};
 use core::clipboard_manager::ClipboardManager;
 use parking_lot::Mutex;
@@ -531,6 +533,10 @@ fn main() {
                     general_config.input_capture_enabled,
                 ));
                 app.manage(input_capture_state.clone());
+                let chat_context_capture_state = Arc::new(ChatContextCaptureState::new(
+                    general_config.chat_context_capture_enabled,
+                ));
+                app.manage(chat_context_capture_state.clone());
                 let copy_on_select_state = Arc::new(CopyOnSelectState::new(
                     general_config.copy_on_select_enabled,
                     general_config.copy_on_select_double_click_enabled,
@@ -561,6 +567,7 @@ fn main() {
                     }
                 });
                 start_input_capture_monitor(manager.clone(), input_capture_state);
+                start_chat_context_monitor(manager.clone(), chat_context_capture_state);
                 start_copy_on_select_monitor(copy_on_select_state);
                 init_meter.mark("spawn_clipboard_monitor");
                 startup_metrics_for_core_init.mark_monitor_spawn_complete();

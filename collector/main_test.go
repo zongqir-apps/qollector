@@ -58,3 +58,16 @@ func TestNormalizeRejectsNonTextContent(t *testing.T) {
 		t.Fatal("expected image content to be rejected")
 	}
 }
+
+func TestCleanDialogueJSON(t *testing.T) {
+	rawMarkdown := "```json\n[{\"speaker\": \"张三\", \"role\": \"peer\", \"content\": \"你好\"}]\n```"
+	cleaned := cleanDialogueJSON(rawMarkdown)
+	if !strings.HasPrefix(cleaned, "[") || !strings.HasSuffix(cleaned, "]") {
+		t.Fatalf("cleanDialogueJSON did not remove markdown blocks: %s", cleaned)
+	}
+
+	plain := "[{\"speaker\": \"李四\", \"role\": \"user\", \"content\": \"收到\"}]"
+	if got := cleanDialogueJSON(plain); got != plain {
+		t.Fatalf("cleanDialogueJSON altered plain JSON: got %q, want %q", got, plain)
+	}
+}

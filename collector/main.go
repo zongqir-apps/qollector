@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -21,25 +23,31 @@ import (
 )
 
 const (
-	defaultPort            = "8080"
-	defaultDataDir         = "/data/events"
-	defaultRetentionDays   = 30
-	defaultMaxTextChars    = 2000
-	defaultPreviewChars    = 200
-	defaultMaxRequestBytes = 256 * 1024
-	cleanupInterval        = time.Hour
-	maxEventIDLength       = 200
+	defaultPort             = "8080"
+	defaultDataDir          = "/data/events"
+	defaultContextDir       = "/data/context"
+	defaultRetentionDays    = 30
+	defaultMaxTextChars     = 2000
+	defaultPreviewChars     = 200
+	defaultMaxRequestBytes  = 256 * 1024
+	defaultMaxSnapshotBytes = 4 * 1024 * 1024
+	cleanupInterval         = time.Hour
+	maxEventIDLength        = 200
 )
 
 type config struct {
 	Token          string
 	Port           string
 	DataDir        string
+	ContextDir     string
 	RetentionDays  int
 	MaxTextChars   int
 	PreviewChars   int
 	MaxRequestSize int64
 	Location       *time.Location
+	AIAPIKey       string
+	AIBaseURL      string
+	AIModel        string
 }
 
 type incomingEvent struct {
@@ -64,6 +72,63 @@ type storedEvent struct {
 	Truncated     bool     `json:"truncated"`
 }
 
+type contextSnapshotRequest struct {
+	CapturedAt  string `json:"captured_at"`
+	SourceApp   string `json:"source_app"`
+	WindowTitle string `json:"window_title"`
+	ImageFormat string `json:"image_format"`
+	ImageBase64 string `json:"image_base64"`
+}
+
+type storedDialogueMessage struct {
+	Speaker string `json:"speaker"`
+	Role    string `json:"role"`
+	Time    string `json:"time,omitempty"`
+	Content string `json:"content"`
+}
+
+type storedContextSnapshot struct {
+	CapturedAt  string                  `json:"captured_at"`
+	ReceivedAt  string                  `json:"received_at"`
+	SourceApp   string                  `json:"source_app"`
+	WindowTitle string                  `json:"window_title"`
+	Model       string                  `json:"model,omitempty"`
+	RawResponse string                  `json:"raw_response,omitempty"`
+	Messages    []storedDialogueMessage `json:"messages,omitempty"`
+	Error       string                  `json:"error,omitempty"`
+}
+
+type openAIMessageContent struct {
+	Type     string          `json:"type"`
+	Text     string          `json:"text,omitempty"`
+	ImageURL *openAIImageURL `json:"image_url,omitempty"`
+}
+
+type openAIImageURL struct {
+	URL string `json:"url"`
+}
+
+type openAIChatMessage struct {
+	Role    string                 `json:"role"`
+	Content []openAIMessageContent `json:"content"`
+}
+
+type openAIChatRequest struct {
+	Model    string              `json:"model"`
+	Messages []openAIChatMessage `json:"messages"`
+}
+
+type openAIChatResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
 type collector struct {
 	cfg    config
 	mu     sync.Mutex
@@ -80,6 +145,9 @@ func main() {
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		log.Fatalf("create data directory: %v", err)
 	}
+	if err := os.MkdirAll(cfg.ContextDir, 0o750); err != nil {
+		log.Fatalf("create context directory: %v", err)
+	}
 
 	c := &collector{cfg: cfg, rate: make(map[string][]time.Time)}
 	c.pruneOldDays(time.Now())
@@ -88,6 +156,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", c.handleHealth)
 	mux.HandleFunc("/v1/clipboard-events", c.handleEvent)
+	mux.HandleFunc("/v1/context-snapshots", c.handleContextSnapshot)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -98,7 +167,7 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	log.Printf("qollect collector listening on :%s, data=%s, retention=%dd", cfg.Port, cfg.DataDir, cfg.RetentionDays)
+	log.Printf("qollect collector listening on :%s, data=%s, context=%s, retention=%dd", cfg.Port, cfg.DataDir, cfg.ContextDir, cfg.RetentionDays)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
@@ -132,15 +201,23 @@ func loadConfig() (config, error) {
 		return config{}, fmt.Errorf("load QOLLECT_TIMEZONE %q: %w", locationName, err)
 	}
 
+	aiAPIKey := strings.TrimSpace(os.Getenv("QOLLECT_AI_API_KEY"))
+	aiBaseURL := envString("QOLLECT_AI_BASE_URL", "https://api.siliconflow.cn/v1")
+	aiModel := envString("QOLLECT_AI_MODEL", "Qwen/Qwen3-VL-32B-Instruct")
+
 	return config{
 		Token:          token,
 		Port:           envString("QOLLECT_PORT", defaultPort),
 		DataDir:        envString("QOLLECT_DATA_DIR", defaultDataDir),
+		ContextDir:     envString("QOLLECT_CONTEXT_DIR", defaultContextDir),
 		RetentionDays:  retentionDays,
 		MaxTextChars:   maxTextChars,
 		PreviewChars:   previewChars,
 		MaxRequestSize: defaultMaxRequestBytes,
 		Location:       location,
+		AIAPIKey:       aiAPIKey,
+		AIBaseURL:      aiBaseURL,
+		AIModel:        aiModel,
 	}, nil
 }
 
@@ -218,10 +295,159 @@ func (c *collector) handleEvent(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (c *collector) handleContextSnapshot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if !c.authorized(r) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	if !c.allowRequest(clientIP(r)) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limit exceeded"})
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, defaultMaxSnapshotBytes)
+	defer r.Body.Close()
+
+	var req contextSnapshotRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+		return
+	}
+
+	if strings.TrimSpace(req.ImageBase64) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "image_base64 is required"})
+		return
+	}
+
+	// Immediately acknowledge client
+	writeJSON(w, http.StatusAccepted, map[string]interface{}{
+		"accepted":     true,
+		"source_app":   req.SourceApp,
+		"window_title": req.WindowTitle,
+	})
+
+	// Process Vision AI in background
+	go func() {
+		msgs, raw, err := c.callVisionAI(req)
+		record := storedContextSnapshot{
+			CapturedAt:  req.CapturedAt,
+			ReceivedAt:  time.Now().UTC().Format(time.RFC3339Nano),
+			SourceApp:   req.SourceApp,
+			WindowTitle: req.WindowTitle,
+			Model:       c.cfg.AIModel,
+			RawResponse: raw,
+			Messages:    msgs,
+		}
+		if err != nil {
+			log.Printf("Vision AI error for %s (%s): %v", req.SourceApp, req.WindowTitle, err)
+			record.Error = err.Error()
+		} else {
+			log.Printf("Vision AI parsed %d messages for %s (%s)", len(msgs), req.SourceApp, req.WindowTitle)
+		}
+		if appendErr := c.appendContext(record); appendErr != nil {
+			log.Printf("Failed to append context snapshot: %v", appendErr)
+		}
+	}()
+}
+
+func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialogueMessage, string, error) {
+	if c.cfg.AIAPIKey == "" {
+		return nil, "", errors.New("QOLLECT_AI_API_KEY is not configured")
+	}
+
+	format := strings.ToLower(strings.TrimSpace(snapshot.ImageFormat))
+	if format == "" {
+		format = "jpeg"
+	}
+	dataURL := fmt.Sprintf("data:image/%s;base64,%s", format, snapshot.ImageBase64)
+
+	reqPayload := openAIChatRequest{
+		Model: c.cfg.AIModel,
+		Messages: []openAIChatMessage{
+			{
+				Role: "user",
+				Content: []openAIMessageContent{
+					{
+						Type:     "image_url",
+						ImageURL: &openAIImageURL{URL: dataURL},
+					},
+					{
+						Type: "text",
+						Text: "这是一张微信/企业微信聊天窗口截图。请识别其中的连续对话。忽略侧边栏、菜单和输入框，严格以标准 JSON 数组输出每一条消息：[{\"speaker\": \"发送人昵称（右边是我，左边是对方昵称）\", \"role\": \"user或peer\", \"time\": \"时间\", \"content\": \"正文\"}]。只输出纯 JSON，不要包含任何 markdown 解释或代码块标签。",
+					},
+				},
+			},
+		},
+	}
+
+	bodyBytes, err := json.Marshal(reqPayload)
+	if err != nil {
+		return nil, "", err
+	}
+
+	endpoint := strings.TrimRight(c.cfg.AIBaseURL, "/") + "/chat/completions"
+	httpReq, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, "", err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+c.cfg.AIAPIKey)
+
+	client := &http.Client{Timeout: 90 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, string(respBytes), fmt.Errorf("AI API returned status %d: %s", resp.StatusCode, string(respBytes))
+	}
+
+	var chatResp openAIChatResponse
+	if err := json.Unmarshal(respBytes, &chatResp); err != nil {
+		return nil, string(respBytes), err
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return nil, string(respBytes), errors.New("no response choices from AI")
+	}
+
+	rawContent := strings.TrimSpace(chatResp.Choices[0].Message.Content)
+	cleanJSON := cleanDialogueJSON(rawContent)
+
+	var messages []storedDialogueMessage
+	if err := json.Unmarshal([]byte(cleanJSON), &messages); err != nil {
+		return nil, rawContent, fmt.Errorf("parse dialogue json failed: %w", err)
+	}
+
+	return messages, rawContent, nil
+}
+
+func cleanDialogueJSON(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if strings.HasPrefix(raw, "```") {
+		idx := strings.Index(raw, "\n")
+		if idx != -1 {
+			raw = strings.TrimSpace(raw[idx+1:])
+		}
+		if lastIdx := strings.LastIndex(raw, "```"); lastIdx != -1 {
+			raw = strings.TrimSpace(raw[:lastIdx])
+		}
+	}
+	return strings.TrimSpace(raw)
+}
+
 func clientIP(r *http.Request) string {
-	// The collector should normally sit behind a trusted reverse proxy. Do not
-	// trust forwarded headers here; the direct peer address is sufficient for
-	// the small abuse guard.
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -346,6 +572,26 @@ func (c *collector) append(event storedEvent) error {
 	return encoder.Encode(event)
 }
 
+func (c *collector) appendContext(snapshot storedContextSnapshot) error {
+	day := time.Now().In(c.cfg.Location).Format("2006/01/02")
+	path := filepath.Join(c.cfg.ContextDir, day+".jsonl")
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	return encoder.Encode(snapshot)
+}
+
 func (c *collector) cleanupLoop() {
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
@@ -356,26 +602,28 @@ func (c *collector) cleanupLoop() {
 
 func (c *collector) pruneOldDays(now time.Time) {
 	cutoff := now.In(c.cfg.Location).AddDate(0, 0, -c.cfg.RetentionDays)
-	err := filepath.Walk(c.cfg.DataDir, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil || info == nil || info.IsDir() || filepath.Ext(path) != ".jsonl" {
-			return walkErr
-		}
-		relative, err := filepath.Rel(c.cfg.DataDir, path)
-		if err != nil {
-			return nil
-		}
-		datePath := strings.TrimSuffix(filepath.ToSlash(relative), ".jsonl")
-		date, err := time.ParseInLocation("2006/01/02", datePath, c.cfg.Location)
-		if err == nil && date.Before(cutoff) {
-			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-				log.Printf("remove expired event file %s: %v", path, err)
+	pruneDir := func(baseDir string) {
+		_ = filepath.Walk(baseDir, func(path string, info os.FileInfo, walkErr error) error {
+			if walkErr != nil || info == nil || info.IsDir() || filepath.Ext(path) != ".jsonl" {
+				return walkErr
 			}
-		}
-		return nil
-	})
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		log.Printf("cleanup failed: %v", err)
+			relative, err := filepath.Rel(baseDir, path)
+			if err != nil {
+				return nil
+			}
+			datePath := strings.TrimSuffix(filepath.ToSlash(relative), ".jsonl")
+			date, err := time.ParseInLocation("2006/01/02", datePath, c.cfg.Location)
+			if err == nil && date.Before(cutoff) {
+				if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+					log.Printf("remove expired file %s: %v", path, err)
+				}
+			}
+			return nil
+		})
 	}
+
+	pruneDir(c.cfg.DataDir)
+	pruneDir(c.cfg.ContextDir)
 }
 
 func min(a, b int) int {

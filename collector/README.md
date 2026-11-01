@@ -82,6 +82,28 @@ Content-Type: application/json
 
 客户端会每 5 分钟批量上传最近 24 小时内尚未上传的文本和链接记录；用户点击“立即同步”时会立刻执行同一批处理。`ai_tags` 是可选字段，仅包含客户端本地 AI 生成的标签；没有生成标签时会省略，用户手动标签不会上传。
 
+聊天上下文快照接口：
+
+```text
+POST /v1/context-snapshots
+Authorization: Bearer <QOLLECT_TOKEN>
+Content-Type: application/json
+```
+
+请求示例：
+
+```json
+{
+  "captured_at": "2026-11-01T12:00:00Z",
+  "source_app": "企业微信",
+  "window_title": "项目群",
+  "image_format": "jpeg",
+  "image_base64": "..."
+}
+```
+
+配置 `QOLLECT_AI_API_KEY`（如硅基流动 SiliconFlow 或通义千问）后，服务端会自动调用多模态视觉模型（如 `Qwen/Qwen3-VL-32B-Instruct`）解析聊天截图中的发言人与连续对话，清洗后结构化归档到 `data/context/YYYY/MM/DD.jsonl`。未配置 AI Key 时仅保留快照元数据。
+
 只接受文本类型。图片、二进制和其他类型会返回 `415`。超过 `QOLLECT_MAX_TEXT_CHARS` 的文本只保存前 `QOLLECT_PREVIEW_CHARS` 个 Unicode 字符，并标记 `truncated: true`，同时保留原始字符数和 SHA-256。
 
 每个来源 IP 每分钟最多接受 120 条上传请求；超过后返回 `429`。这是一个轻量防刷限制，公网部署仍建议放在 HTTPS 反向代理和防火墙后面。

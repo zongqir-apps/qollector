@@ -12,6 +12,9 @@ services:
       QOLLECT_MAX_TEXT_CHARS: ${QOLLECT_MAX_TEXT_CHARS:-2000}
       QOLLECT_PREVIEW_CHARS: ${QOLLECT_PREVIEW_CHARS:-200}
       QOLLECT_TIMEZONE: ${QOLLECT_TIMEZONE:-UTC}
+      QOLLECT_AI_API_KEY: ${QOLLECT_AI_API_KEY:-}
+      QOLLECT_AI_BASE_URL: ${QOLLECT_AI_BASE_URL:-https://api.siliconflow.cn/v1}
+      QOLLECT_AI_MODEL: ${QOLLECT_AI_MODEL:-Qwen/Qwen3-VL-32B-Instruct}
     volumes:
       - ./data:/data
     networks:

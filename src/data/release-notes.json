@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.20",
+      "publishedAt": "2026-11-01",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-20",
+      "summary": {
+        "zh-CN": "新增聊天上下文感知实验性功能（微信/企微快照与 Collector 同步），并在 Collector 服务端深度集成硅基流动 Qwen-VL 视觉大模型以实现连续对话自动解析归档。",
+        "en-US": "Added experimental chat context perception for WeChat/WeCom snapshots in Qollect, and empowered Collector with SiliconFlow Qwen-VL multimodal integration for automated dialogue extraction and archival."
+      },
+      "highlights": {
+        "zh-CN": [
+          "客户端聊天上下文感知（微信/企微快照同步）：在通用设置中提供独立开关，当停留在微信或企业微信聊天窗口时，自动感知新消息变动并在静止 1.5 秒后完成截帧并异步同步至 Collector 服务端。",
+          "极低配无感运行设计：离开聊天窗口时探针线程彻底休眠（0% CPU 占用）；采用 32x32 灰度指纹与 blake3 秒级比对，单次检测开销微秒级，内存占用小于 15MB。",
+          "Collector 视觉大模型深度集成：服务端新增 /v1/context-snapshots 端点，全面支持硅基流动（SiliconFlow）Qwen-VL 系列多模态大模型，智能识别聊天界面截屏并提取为结构化连续对话 JSON，按天自动归档。",
+          "多语言与凭据安全隔离：客户端设置开关与文案完整覆盖中英文 i18n 多语言；服务端新增针对大图片请求的安全尺寸保护与环境配置隔离。"
+        ],
+        "en-US": [
+          "Client Chat Context Perception: Added an optional toggle under settings to passively detect message changes in WeChat / WeCom windows, capturing settled snapshots and syncing them to Collector asynchronously.",
+          "Ultra-low Footprint Daemon: Idles with 0% CPU when outside chat windows; uses 32x32 grayscale stride sampling and blake3 hashing taking microseconds per frame with under 15MB memory footprint.",
+          "Collector Multimodal Vision Integration: Added /v1/context-snapshots endpoint with SiliconFlow Qwen-VL integration, parsing chat UI screenshots into structured dialogue JSON and archiving under daily logs.",
+          "I18n & Safeguards: Full bilingual zh-CN and en-US localization, alongside image payload size safeguards and secure credential isolation."
+        ]
+      }
+    },
+    {
       "version": "0.6.19",
       "publishedAt": "2026-11-01",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-19",

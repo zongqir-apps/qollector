@@ -235,6 +235,32 @@ function IntegrationsCoreSection({
                   </small>
                 )}
               </div>
+              <label className="sg-row setting-toggle-row">
+                <span className="toggle-label-group">
+                  <span className="toggle-label">{t('settings.general.chatContextCapture')}</span>
+                  <span className="toggle-desc">{t('settings.general.chatContextCaptureHint')}</span>
+                </span>
+                <span className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={generalConfig.chat_context_capture_enabled || false}
+                    onChange={async (event) => {
+                      const updated = {
+                        ...generalConfig,
+                        chat_context_capture_enabled: event.target.checked,
+                      };
+                      setGeneralConfig(updated);
+                      try {
+                        await invoke('update_general_config', { config: updated });
+                      } catch (error) {
+                        console.error('Failed to save chat context capture config:', error);
+                        setGeneralConfig(generalConfig);
+                      }
+                    }}
+                  />
+                  <span className="toggle-slider" />
+                </span>
+              </label>
             </>
           )}
           <label className="sg-row setting-toggle-row">
