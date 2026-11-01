@@ -52,13 +52,13 @@ mod platform_impl {
         pub jpeg_bytes: Vec<u8>,
     }
 
-    pub fn get_foreground_hwnd() -> Option<HWND> {
+    pub fn get_foreground_hwnd() -> Option<isize> {
         unsafe {
             let hwnd = GetForegroundWindow();
             if hwnd.is_invalid() {
                 None
             } else {
-                Some(hwnd)
+                Some(hwnd.0 as isize)
             }
         }
     }
@@ -76,8 +76,9 @@ mod platform_impl {
             || title.contains("企业微信")
     }
 
-    pub fn capture_window(hwnd: HWND) -> Option<WindowCaptureResult> {
+    pub fn capture_window(hwnd_val: isize) -> Option<WindowCaptureResult> {
         unsafe {
+            let hwnd = HWND(hwnd_val as *mut core::ffi::c_void);
             let mut rect = RECT::default();
             if GetWindowRect(hwnd, &mut rect).is_err() {
                 return None;
@@ -245,11 +246,10 @@ pub fn start_chat_context_monitor(
                     continue;
                 }
 
-                let hwnd = match platform_impl::get_foreground_hwnd() {
-                    Some(h) => h,
+                let hwnd_val = match platform_impl::get_foreground_hwnd() {
+                    Some(val) => val,
                     None => continue,
                 };
-                let hwnd_val = hwnd.0 as isize;
 
                 // If switched to another chat window, reset state
                 if last_hwnd != Some(hwnd_val) {
@@ -260,7 +260,7 @@ pub fn start_chat_context_monitor(
                 }
 
                 // Capture window in blocking task
-                let capture = tokio::task::spawn_blocking(move || platform_impl::capture_window(hwnd))
+                let capture = tokio::task::spawn_blocking(move || platform_impl::capture_window(hwnd_val))
                     .await
                     .ok()
                     .flatten();

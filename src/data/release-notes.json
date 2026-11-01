@@ -2,6 +2,25 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.22",
+      "publishedAt": "2026-11-01",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-22",
+      "summary": {
+        "zh-CN": "修复 Windows 平台下多线程跨线程窗口句柄生命周期问题，通过数值化句柄传递保证 Tokio 阻塞线程池安全调度。",
+        "en-US": "Resolved Tokio thread boundary Send constraint on Windows window handles by passing raw integer identifiers across asynchronous workers."
+      },
+      "highlights": {
+        "zh-CN": [
+          "彻底解决 Win32 HWND 裸指针未实现 Send 导致的 tokio::task::spawn_blocking 编译错误。",
+          "将前台窗口抓取句柄转化为安全标量传递，在截屏子任务内部恢复原生上下文，保证高频截屏不阻塞 Tokio 异步运行时主线程。"
+        ],
+        "en-US": [
+          "Eliminated tokio::task::spawn_blocking compilation errors caused by non-Send raw pointer representation of Win32 HWND.",
+          "Serialized foreground window handles into thread-safe integer values across worker boundaries, ensuring responsive non-blocking background monitoring."
+        ]
+      }
+    },
+    {
       "version": "0.6.21",
       "publishedAt": "2026-11-01",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-21",
