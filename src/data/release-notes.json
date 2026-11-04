@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.26",
+      "publishedAt": "2026-11-04",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-26",
+      "summary": {
+        "zh-CN": "邮件分享体验全面升级：彻底解除长文本截断与滚动高度限制，单图及多图文件自动升格为邮件正文内嵌大图展示，告别必须下载附件查看图片的痛点。",
+        "en-US": "Revamped email relay rendering: removed text truncation and height limits, and elevated image files to inline body previews without requiring attachment downloads."
+      },
+      "highlights": {
+        "zh-CN": [
+          "邮件正文解除截断与高度限制：移除 500px 高度限制与多余滚动条，取消超长文本的自动折叠截断与 2000 字符限制，无论是数百字、数千字还是数万字长文，均在邮件正文中完整、自然展开展示。",
+          "移除冗余 .txt 备份附件：纯文本邮件不再附带多余的 .txt 备份附件，正文标题精简为统一的『正文内容』，正文即是完整内容，界面更加干净纯粹。",
+          "图片及图片文件自动内嵌展示：复制单张或多张图片文件（PNG / JPG / GIF / WebP / BMP 等）进行邮件分享时，系统自动将其升格为邮件正文内嵌大图展示，收件人打开邮件即可直接查看，彻底告别必须下载附件的痛点。",
+          "主流邮件客户端全兼容格式转换：针对 WebP 与 BMP 格式自动转码为通用 PNG 内嵌，确保 Outlook 桌面端、企业微信邮箱、QQ 邮箱、各类移动端邮件 App 均能 100% 正常即开即显。"
+        ],
+        "en-US": [
+          "Removed email body truncation and height limits: eliminated the 500px container restriction and 2,000-character truncation, allowing short notes and tens of thousands of characters to expand fully and naturally in the body.",
+          "Eliminated redundant .txt backup attachments: text emails no longer generate superfluous .txt file attachments, keeping the email clean, lightweight, and focused.",
+          "Automatic inline preview for image files: copying image files (PNG, JPG, GIF, WebP, BMP, etc.) from chat or Explorer now renders them directly inside the email body instead of as downloadable attachments.",
+          "Universal client compatibility: automatically converts WebP and BMP to standard PNG for inline embedding, ensuring flawless display across Outlook desktop, WeCom, QQ Mail, Apple Mail, and mobile apps."
+        ]
+      }
+    },
+    {
       "version": "0.6.25",
       "publishedAt": "2026-11-04",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-25",

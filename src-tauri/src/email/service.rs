@@ -15,6 +15,52 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#39;")
 }
 
+fn is_image_extension(ext: &str) -> bool {
+    matches!(
+        ext.to_lowercase().as_str(),
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg" | "ico" | "tiff" | "tif" | "jfif" | "avif"
+    )
+}
+
+fn convert_to_web_friendly_image(bytes: Vec<u8>, ext: &str) -> (Vec<u8>, String, String) {
+    let lower_ext = ext.to_lowercase();
+    match lower_ext.as_str() {
+        "jpg" | "jpeg" => (bytes, "jpg".to_string(), "image/jpeg".to_string()),
+        "gif" => (bytes, "gif".to_string(), "image/gif".to_string()),
+        "png" => (bytes, "png".to_string(), "image/png".to_string()),
+        _ => {
+            // 将 WebP, BMP, TIFF 等格式转为通用 PNG，确保各大邮件客户端（尤其是 Outlook、各类移动端/网页端）原生内嵌完整渲染
+            if let Ok(dyn_img) = image::load_from_memory(&bytes) {
+                let mut png_bytes = Vec::new();
+                let mut cursor = std::io::Cursor::new(&mut png_bytes);
+                if dyn_img.write_to(&mut cursor, image::ImageFormat::Png).is_ok() {
+                    return (png_bytes, "png".to_string(), "image/png".to_string());
+                }
+            }
+            let mime = match lower_ext.as_str() {
+                "webp" => "image/webp",
+                "bmp" => "image/bmp",
+                "svg" => "image/svg+xml",
+                _ => "image/png",
+            };
+            (bytes, lower_ext, mime.to_string())
+        }
+    }
+}
+
+struct EmailInlineImage {
+    cid: String,
+    filename: String,
+    mime_type: String,
+    bytes: Vec<u8>,
+}
+
+struct EmailAttachment {
+    filename: String,
+    mime_type: String,
+    bytes: Vec<u8>,
+}
+
 pub struct EmailService;
 
 impl EmailService {
@@ -150,20 +196,108 @@ impl EmailService {
             .map_err(|e| format!("发件人邮箱格式无效: {}", e))?;
 
         let timestamp_str = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
-
         let text_content = item.content.as_deref().unwrap_or("");
 
-        let default_subject = match item.type_.as_str() {
-            "image" => format!("{}收集箱分享 | 图片资产_{}", config.subject_prefix, timestamp_str),
-            "file" => format!("{}收集箱分享 | 文件资产_{}", config.subject_prefix, timestamp_str),
-            _ => {
-                let snippet = text_content.chars().take(25).collect::<String>().replace(['\r', '\n'], " ");
-                let trimmed = snippet.trim();
-                if trimmed.is_empty() {
-                    format!("{}收集箱文字分享_{}", config.subject_prefix, timestamp_str)
-                } else {
-                    format!("{}收集箱文字分享 | {}", config.subject_prefix, trimmed)
+        // 提取并预处理内嵌图片资产与文件附件
+        let mut inline_images: Vec<EmailInlineImage> = Vec::new();
+        let mut file_attachments: Vec<EmailAttachment> = Vec::new();
+
+        if item.type_ == "image" {
+            if let Some(ref paths_str) = item.image_paths {
+                if let Ok(paths) = serde_json::from_str::<serde_json::Value>(paths_str) {
+                    let original_path = paths.get("original").and_then(|v| v.as_str());
+                    let thumb_path = paths.get("thumbnail").and_then(|v| v.as_str());
+                    let chosen_path = match (original_path, thumb_path) {
+                        (Some(orig), _) if Path::new(orig).exists() => Some(orig),
+                        (_, Some(thumb)) if Path::new(thumb).exists() => Some(thumb),
+                        (Some(orig), _) => Some(orig),
+                        (None, Some(thumb)) => Some(thumb),
+                        _ => None,
+                    };
+
+                    if let Some(img_path_str) = chosen_path {
+                        if let Ok(raw_bytes) = tokio::fs::read(img_path_str).await {
+                            let ext = Path::new(img_path_str)
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or("png");
+                            let (bytes, safe_ext, mime) = convert_to_web_friendly_image(raw_bytes, ext);
+                            let filename = format!("qollect_img_{}.{}", timestamp_str, safe_ext);
+                            inline_images.push(EmailInlineImage {
+                                cid: "qollect_img_0".to_string(),
+                                filename,
+                                mime_type: mime,
+                                bytes,
+                            });
+                        }
+                    }
                 }
+            }
+        } else if item.type_ == "file" {
+            let paths: Vec<&str> = text_content
+                .lines()
+                .map(|l| l.trim())
+                .filter(|l| !l.is_empty())
+                .collect();
+
+            for path_str in paths {
+                let file_path = Path::new(path_str);
+                if let Ok(metadata) = tokio::fs::metadata(file_path).await {
+                    if metadata.is_file() && metadata.len() <= 20 * 1024 * 1024 {
+                        if let Ok(raw_bytes) = tokio::fs::read(file_path).await {
+                            let ext = file_path
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or("");
+                            let original_name = file_path
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("attachment")
+                                .to_string();
+
+                            if is_image_extension(ext) {
+                                let (bytes, safe_ext, mime) = convert_to_web_friendly_image(raw_bytes, ext);
+                                let final_filename = if safe_ext != ext.to_lowercase() {
+                                    let stem = Path::new(&original_name)
+                                        .file_stem()
+                                        .and_then(|s| s.to_str())
+                                        .unwrap_or("image");
+                                    format!("{}.{}", stem, safe_ext)
+                                } else {
+                                    original_name
+                                };
+                                inline_images.push(EmailInlineImage {
+                                    cid: format!("qollect_img_{}", inline_images.len()),
+                                    filename: final_filename,
+                                    mime_type: mime,
+                                    bytes,
+                                });
+                            } else {
+                                file_attachments.push(EmailAttachment {
+                                    filename: original_name,
+                                    mime_type: "application/octet-stream".to_string(),
+                                    bytes: raw_bytes,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let is_image_asset = item.type_ == "image" || (!inline_images.is_empty() && file_attachments.is_empty());
+
+        let default_subject = if is_image_asset {
+            format!("{}收集箱分享 | 图片资产_{}", config.subject_prefix, timestamp_str)
+        } else if item.type_ == "file" {
+            format!("{}收集箱分享 | 文件资产_{}", config.subject_prefix, timestamp_str)
+        } else {
+            let snippet = text_content.chars().take(25).collect::<String>().replace(['\r', '\n'], " ");
+            let trimmed = snippet.trim();
+            if trimmed.is_empty() {
+                format!("{}收集箱文字分享_{}", config.subject_prefix, timestamp_str)
+            } else {
+                format!("{}收集箱文字分享 | {}", config.subject_prefix, trimmed)
             }
         };
 
@@ -184,12 +318,13 @@ impl EmailService {
         }
 
         let share_time = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        let timestamp_str = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
 
-        let type_desc = match item.type_.as_str() {
-            "image" => "图片资产 (已内嵌展示并作为附件提供)",
-            "file" => "本地文件资产",
-            _ => "文本 / 代码资产",
+        let type_desc = if is_image_asset {
+            "图片资产 (已内嵌展示)"
+        } else if item.type_ == "file" {
+            "本地文件资产"
+        } else {
+            "文本 / 代码资产"
         };
 
         let source_app = item.metadata.as_ref().and_then(|meta_str| {
@@ -228,71 +363,10 @@ impl EmailService {
         }
         plain_body.push_str("----------------------------------------\r\n");
 
-        // 提取附件
-        let (attachment_bytes, attachment_filename, content_type): (
-            Option<Vec<u8>>,
-            Option<String>,
-            Option<String>,
-        ) = if item.type_ == "image" {
-            if let Some(ref paths_str) = item.image_paths {
-                let paths: serde_json::Value =
-                    serde_json::from_str(paths_str).map_err(|e| e.to_string())?;
-                let original = paths
-                    .get("original")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| "图片原图路径缺失".to_string())?;
-                let bytes = tokio::fs::read(original)
-                    .await
-                    .map_err(|e| format!("读取图片文件失败: {}", e))?;
-                let ext = Path::new(original)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .unwrap_or("png")
-                    .to_lowercase();
-                let mime = match ext.as_str() {
-                    "jpg" | "jpeg" => "image/jpeg",
-                    "webp" => "image/webp",
-                    "gif" => "image/gif",
-                    _ => "image/png",
-                };
-                let filename = format!("qollect_img_{}.{}", timestamp_str, ext);
-                (Some(bytes), Some(filename), Some(mime.to_string()))
-            } else {
-                (None, None, None)
+        if !inline_images.is_empty() {
+            for img in &inline_images {
+                plain_body.push_str(&format!("[图片内容已内嵌展示: {}]\r\n", img.filename));
             }
-        } else if item.type_ == "file" {
-            let paths: Vec<&str> = text_content.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect();
-            if paths.len() == 1 {
-                let file_path = Path::new(paths[0]);
-                if let Ok(metadata) = tokio::fs::metadata(file_path).await {
-                    if metadata.is_file() && metadata.len() <= 20 * 1024 * 1024 {
-                        if let Ok(bytes) = tokio::fs::read(file_path).await {
-                            let filename = file_path.file_name()
-                                .and_then(|n| n.to_str())
-                                .unwrap_or("attachment")
-                                .to_string();
-                            (Some(bytes), Some(filename), Some("application/octet-stream".to_string()))
-                        } else {
-                            (None, None, None)
-                        }
-                    } else {
-                        (None, None, None)
-                    }
-                } else {
-                    (None, None, None)
-                }
-            } else {
-                (None, None, None)
-            }
-        } else if item.type_ != "image" && text_content.len() > 1000 {
-            let filename = format!("qollect_text_{}.txt", timestamp_str);
-            (Some(text_content.as_bytes().to_vec()), Some(filename), Some("text/plain; charset=utf-8".to_string()))
-        } else {
-            (None, None, None)
-        };
-
-        if item.type_ == "image" {
-            plain_body.push_str("[图片内容已内嵌并作为附件提供]\r\n");
             if let Some(ref ocr) = item.ocr_text {
                 if !ocr.trim().is_empty() {
                     plain_body.push_str("\r\n【图片识别文本 (OCR)】\r\n");
@@ -300,21 +374,17 @@ impl EmailService {
                     plain_body.push_str("\r\n");
                 }
             }
-        } else if item.type_ == "file" && !text_content.is_empty() {
-            plain_body.push_str("\r\n【包含文件列表】\r\n");
+        }
+        if !file_attachments.is_empty() {
+            plain_body.push_str("\r\n【包含附件列表】\r\n");
+            for att in &file_attachments {
+                plain_body.push_str(&format!("- {}\r\n", att.filename));
+            }
+        }
+        if inline_images.is_empty() && file_attachments.is_empty() && !text_content.is_empty() {
+            plain_body.push_str("\r\n【正文内容】\r\n");
             plain_body.push_str(text_content);
             plain_body.push_str("\r\n");
-        } else if item.type_ != "image" && item.type_ != "file" {
-            if text_content.len() <= 20000 && !text_content.is_empty() {
-                plain_body.push_str("\r\n【正文内容】\r\n");
-                plain_body.push_str(text_content);
-                plain_body.push_str("\r\n");
-            } else if text_content.len() > 20000 {
-                plain_body.push_str("\r\n【正文摘要 (超长文本已完整打包为附件 .txt)】\r\n");
-                let snippet: String = text_content.chars().take(2000).collect();
-                plain_body.push_str(&snippet);
-                plain_body.push_str("\r\n...\r\n");
-            }
         }
 
         // 构建美观 HTML 正文
@@ -360,7 +430,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
   color: #1d4ed8;
 }
 .img-container { text-align: center; margin: 8px 0; }
-.img-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.img-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: block; margin: 0 auto; }
 .ocr-box { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 6px; padding: 14px 18px; }
 .ocr-title { font-size: 13px; font-weight: 600; color: #2563eb; margin-bottom: 8px; }
 .ocr-content {
@@ -393,8 +463,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
   -moz-user-select: all;
   -ms-user-select: all;
   cursor: pointer;
-  max-height: 500px;
-  overflow-y: auto;
   box-sizing: border-box;
   transition: border-color 0.15s, background-color 0.15s;
 }
@@ -463,22 +531,48 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 
         html_body.push_str("\r\n</div>\r\n<div class=\"content\">\r\n");
 
-        if item.type_ == "image" {
-            html_body.push_str(r##"  <div class="content-block">
+        if !inline_images.is_empty() {
+            for (idx, img) in inline_images.iter().enumerate() {
+                let img_id = format!("qollect-img-asset-{}", idx);
+                let title = if inline_images.len() > 1 {
+                    format!("图片资产 #{} ({})", idx + 1, html_escape(&img.filename))
+                } else {
+                    "图片资产".to_string()
+                };
+                html_body.push_str(&format!(
+                    r##"  <div class="content-block">
     <div class="content-toolbar">
-      <span class="content-title">图片资产</span>
+      <span class="content-title">{}</span>
       <div class="toolbar-actions">
         <span class="qollect-tip-badge">💡 右键“复制图片”或长按复制</span>
-        <button type="button" class="qollect-copy-btn" onclick="qollectCopyImage(this)" title="一键复制图片">
+        <button type="button" class="qollect-copy-btn" onclick="qollectCopyImageById('{}', this)" title="一键复制图片">
           🖼️ 一键复制图片
         </button>
       </div>
     </div>
     <div class="img-container">
-      <img id="qollect-img-asset" src="cid:qollect_img_asset" alt="Qollect 剪贴板图片" />
+      <img id="{}" src="cid:{}" alt="{}" />
     </div>
   </div>
-"##);
+"##,
+                    title,
+                    img_id,
+                    img_id,
+                    img.cid,
+                    html_escape(&img.filename)
+                ));
+            }
+
+            if item.type_ == "file" && !text_content.is_empty() {
+                html_body.push_str(&format!(
+                    r##"  <div style="font-size: 12px; color: #64748b; margin: -6px 0 16px 0; padding: 0 4px; word-break: break-all;">
+    <strong>来源文件路径：</strong>{}
+  </div>
+"##,
+                    html_escape(text_content)
+                ));
+            }
+
             if let Some(ref ocr) = item.ocr_text {
                 if !ocr.trim().is_empty() {
                     html_body.push_str(&format!(
@@ -501,35 +595,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
                     ));
                 }
             }
-        } else if item.type_ == "file" && !text_content.is_empty() {
-            html_body.push_str(&format!(
-                r##"  <div class="content-block">
+        }
+
+        if !file_attachments.is_empty() {
+            html_body.push_str(r##"  <div class="content-block">
     <div class="content-toolbar">
-      <span class="content-title">包含文件列表</span>
+      <span class="content-title">包含附件列表</span>
       <div class="toolbar-actions">
         <span class="qollect-tip-badge">💡 单击框内全选 · 按 Ctrl+C 复制</span>
-        <button type="button" class="qollect-copy-btn" onclick="qollectCopyText(this)" title="复制文件路径列表">
-          📋 复制文件路径
+        <button type="button" class="qollect-copy-btn" onclick="qollectCopyText(this)" title="复制附件列表">
+          📋 复制列表
         </button>
       </div>
     </div>
     <div class="ocr-box">
-      <pre class="ocr-content copy-target">{}</pre>
+      <pre class="ocr-content copy-target">"##);
+            for att in &file_attachments {
+                html_body.push_str(&format!("📎 {}\r\n", html_escape(&att.filename)));
+            }
+            html_body.push_str(r##"</pre>
     </div>
   </div>
-"##,
-                html_escape(text_content)
-            ));
-        } else if item.type_ != "image" && item.type_ != "file" && !text_content.is_empty() {
-            let section_title = if text_content.len() > 1000 {
-                "正文内容 (完整文本已作为附件 .txt 备份)"
-            } else {
-                "正文内容"
-            };
+"##);
+        }
+
+        if inline_images.is_empty() && file_attachments.is_empty() && !text_content.is_empty() {
             html_body.push_str(&format!(
                 r##"  <div class="content-block">
     <div class="content-toolbar">
-      <span class="content-title">{}</span>
+      <span class="content-title">正文内容</span>
       <div class="toolbar-actions">
         <span class="qollect-tip-badge">💡 单击框内全选 · 按 Ctrl+C 复制</span>
         <button type="button" class="qollect-copy-btn" onclick="qollectCopyText(this)" title="一键复制正文内容">
@@ -540,7 +634,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
     <pre class="text-content copy-target">{}</pre>
   </div>
 "##,
-                section_title,
                 html_escape(text_content)
             ));
         }
@@ -618,9 +711,9 @@ function qollectExecCommandCopy(text, btn, target) {
   }
 }
 
-function qollectCopyImage(btn) {
+function qollectCopyImageById(id, btn) {
   try {
-    var img = document.getElementById('qollect-img-asset');
+    var img = document.getElementById(id);
     if (!img) return;
     if (!navigator.clipboard || !window.ClipboardItem) {
       qollectSelectImg(img, btn);
@@ -643,9 +736,13 @@ function qollectCopyImage(btn) {
       });
     }, 'image/png');
   } catch(e) {
-    var imgNode = document.getElementById('qollect-img-asset');
+    var imgNode = document.getElementById(id);
     if (imgNode) qollectSelectImg(imgNode, btn);
   }
+}
+
+function qollectCopyImage(btn) {
+  qollectCopyImageById('qollect-img-asset-0', btn);
 }
 
 function qollectSelectImg(img, btn) {
@@ -683,41 +780,46 @@ function qollectShowFeedback(btn, msg, success) {
 </body>
 </html>"##);
 
-        let email = if item.type_ == "image" {
-            if let (Some(bytes), Some(filename), Some(mime_str)) = (attachment_bytes, attachment_filename, content_type) {
-                let ct = ContentType::parse(&mime_str)
+        let email = if !inline_images.is_empty() {
+            let mut related = MultiPart::related().singlepart(SinglePart::html(html_body));
+            for img in inline_images {
+                let ct = ContentType::parse(&img.mime_type)
                     .unwrap_or_else(|_| ContentType::parse("image/png").unwrap());
-                let inline_attachment = Attachment::new_inline_with_name("qollect_img_asset".to_string(), filename)
-                    .body(bytes, ct);
-                let related = MultiPart::related()
-                    .singlepart(SinglePart::html(html_body))
-                    .singlepart(inline_attachment);
-                let multipart = MultiPart::alternative()
-                    .singlepart(SinglePart::plain(plain_body))
-                    .multipart(related);
-                email_builder.multipart(multipart).map_err(|e| format!("构建邮件失败: {}", e))?
-            } else {
-                let multipart = MultiPart::alternative()
-                    .singlepart(SinglePart::plain(plain_body))
-                    .singlepart(SinglePart::html(html_body));
-                email_builder.multipart(multipart).map_err(|e| format!("构建邮件失败: {}", e))?
+                let inline_attachment = Attachment::new_inline_with_name(img.cid, img.filename)
+                    .body(img.bytes, ct);
+                related = related.singlepart(inline_attachment);
             }
-        } else if let (Some(bytes), Some(filename), Some(mime_str)) = (attachment_bytes, attachment_filename, content_type) {
-            let ct = ContentType::parse(&mime_str)
-                .unwrap_or_else(|_| ContentType::parse("application/octet-stream").unwrap());
-            let attachment = Attachment::new(filename).body(bytes, ct);
+            let alternative = MultiPart::alternative()
+                .singlepart(SinglePart::plain(plain_body))
+                .multipart(related);
+
+            if !file_attachments.is_empty() {
+                let mut mixed = MultiPart::mixed().multipart(alternative);
+                for file_att in file_attachments {
+                    let ct = ContentType::parse(&file_att.mime_type)
+                        .unwrap_or_else(|_| ContentType::parse("application/octet-stream").unwrap());
+                    mixed = mixed.singlepart(Attachment::new(file_att.filename).body(file_att.bytes, ct));
+                }
+                email_builder.multipart(mixed).map_err(|e| format!("构建多部分邮件失败: {}", e))?
+            } else {
+                email_builder.multipart(alternative).map_err(|e| format!("构建邮件失败: {}", e))?
+            }
+        } else if !file_attachments.is_empty() {
             let alternative = MultiPart::alternative()
                 .singlepart(SinglePart::plain(plain_body))
                 .singlepart(SinglePart::html(html_body));
-            let multipart = MultiPart::mixed()
-                .multipart(alternative)
-                .singlepart(attachment);
-            email_builder.multipart(multipart).map_err(|e| format!("构建多部分邮件失败: {}", e))?
+            let mut mixed = MultiPart::mixed().multipart(alternative);
+            for file_att in file_attachments {
+                let ct = ContentType::parse(&file_att.mime_type)
+                    .unwrap_or_else(|_| ContentType::parse("application/octet-stream").unwrap());
+                mixed = mixed.singlepart(Attachment::new(file_att.filename).body(file_att.bytes, ct));
+            }
+            email_builder.multipart(mixed).map_err(|e| format!("构建多部分邮件失败: {}", e))?
         } else {
-            let multipart = MultiPart::alternative()
+            let alternative = MultiPart::alternative()
                 .singlepart(SinglePart::plain(plain_body))
                 .singlepart(SinglePart::html(html_body));
-            email_builder.multipart(multipart).map_err(|e| format!("构建邮件失败: {}", e))?
+            email_builder.multipart(alternative).map_err(|e| format!("构建邮件失败: {}", e))?
         };
 
         transport
