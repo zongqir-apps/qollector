@@ -70,6 +70,11 @@ func TestCleanDialogueJSON(t *testing.T) {
 	if got := cleanDialogueJSON(plain); got != plain {
 		t.Fatalf("cleanDialogueJSON altered plain JSON: got %q, want %q", got, plain)
 	}
+
+	wrapped := "好的，以下是识别结果：\n```json\n[{\"speaker\": \"王五\", \"role\": \"user\", \"content\": \"好的\"}]\n```\n希望对您有帮助！"
+	if got := cleanDialogueJSON(wrapped); got != "[{\"speaker\": \"王五\", \"role\": \"user\", \"content\": \"好的\"}]" {
+		t.Fatalf("cleanDialogueJSON failed on wrapped JSON: got %q", got)
+	}
 }
 
 func TestLocalOCRMessagesValidation(t *testing.T) {

@@ -6,8 +6,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-const MONITOR_POLL_INTERVAL: Duration = Duration::from_millis(1000);
-const SETTLE_DELAY: Duration = Duration::from_millis(10000);
+const MONITOR_POLL_INTERVAL: Duration = Duration::from_millis(500);
+const SETTLE_DELAY: Duration = Duration::from_millis(3000);
+const MAX_SETTLE_DELAY: Duration = Duration::from_millis(8000);
 
 pub struct ChatContextCaptureState {
     enabled: AtomicBool,
@@ -75,6 +76,7 @@ mod platform_impl {
 
     pub struct WindowCaptureResult {
         pub hash: String,
+        pub sample: Vec<u8>,
         pub width: i32,
         pub height: i32,
         pub jpeg_bytes: Vec<u8>,
@@ -167,8 +169,9 @@ mod platform_impl {
             }
 
             // 1) Fast 32x32 stride grayscale thumbnail for instant diff
-            // Exclude bottom 20% (input box area) to prevent blinking cursor from triggering diff
-            let sample_height = (height * 80 / 100).max(1);
+            // Exclude only the bottom input box area (up to 120px or 20% max) to avoid clipping newest message bubbles
+            let input_box_height = 120.min(height / 5);
+            let sample_height = (height - input_box_height).max(1);
             let mut sample = Vec::with_capacity(32 * 32);
             for y in 0..32 {
                 let row = (y * sample_height / 32) as usize;
@@ -201,6 +204,7 @@ mod platform_impl {
 
             Some(WindowCaptureResult {
                 hash,
+                sample,
                 width,
                 height,
                 jpeg_bytes: jpeg_buf.into_inner(),
@@ -219,7 +223,7 @@ async fn send_context_snapshot_to_collector(
         .post(url)
         .header("Authorization", format!("Bearer {}", token))
         .json(payload)
-        .timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(30))
         .send()
         .await
         .map_err(|e| format!("Upload snapshot failed: {e}"))?;
@@ -231,6 +235,93 @@ async fn send_context_snapshot_to_collector(
     Ok(())
 }
 
+async fn dispatch_chat_snapshot(
+    manager: Arc<ClipboardManager>,
+    state: Arc<ChatContextCaptureState>,
+    app_name: String,
+    title: String,
+    jpeg_data: Vec<u8>,
+) {
+    let collector_cfg = manager.config_repo().load_collector_config().await.ok().flatten();
+    if let Some(cfg) = collector_cfg {
+        if cfg.enabled && !cfg.endpoint.is_empty() && !cfg.token.is_empty() {
+            let current_mode = state.mode();
+            tauri::async_runtime::spawn(async move {
+                if current_mode == "local_ocr" {
+                    let ocr = NativeOcr::new();
+                    match ocr.recognize_bytes(&jpeg_data).await {
+                        Ok(res) => {
+                            let mut messages = Vec::new();
+                            for line in res.text.lines() {
+                                let trimmed = line.trim();
+                                if trimmed.is_empty() {
+                                    continue;
+                                }
+                                messages.push(StoredDialogueMessage {
+                                    speaker: "chat".to_string(),
+                                    role: "user".to_string(),
+                                    content: trimmed.to_string(),
+                                });
+                            }
+                            if !messages.is_empty() {
+                                let payload = ContextSnapshotPayload {
+                                    captured_at: chrono::Utc::now().to_rfc3339(),
+                                    source_app: &app_name,
+                                    window_title: &title,
+                                    engine: Some("local_ocr"),
+                                    image_format: None,
+                                    image_base64: None,
+                                    messages: Some(messages),
+                                };
+                                if let Err(e) = send_context_snapshot_to_collector(
+                                    &cfg.endpoint,
+                                    &cfg.token,
+                                    &payload,
+                                ).await {
+                                    eprintln!("[ChatContextCapture] Upload local OCR failed: {e}");
+                                } else {
+                                    println!("[ChatContextCapture] Successfully uploaded local OCR snapshot for {app_name} - {title}");
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[ChatContextCapture] Local OCR recognition failed: {e}");
+                        }
+                    }
+                } else {
+                    use base64::Engine;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&jpeg_data);
+                    let payload = ContextSnapshotPayload {
+                        captured_at: chrono::Utc::now().to_rfc3339(),
+                        source_app: &app_name,
+                        window_title: &title,
+                        engine: Some("cloud_llm"),
+                        image_format: Some("jpeg"),
+                        image_base64: Some(b64),
+                        messages: None,
+                    };
+                    if let Err(e) = send_context_snapshot_to_collector(
+                        &cfg.endpoint,
+                        &cfg.token,
+                        &payload,
+                    ).await {
+                        eprintln!("[ChatContextCapture] Upload snapshot error: {e}");
+                    } else {
+                        println!("[ChatContextCapture] Successfully uploaded snapshot for {app_name} - {title}");
+                    }
+                }
+            });
+        } else {
+            println!(
+                "[ChatContextCapture] Settled snapshot captured for {} ({}), size {} KB (Collector not active)",
+                app_name,
+                title,
+                jpeg_data.len() / 1024
+            );
+        }
+    }
+}
+
 pub fn start_chat_context_monitor(
     manager: Arc<ClipboardManager>,
     state: Arc<ChatContextCaptureState>,
@@ -240,8 +331,10 @@ pub fn start_chat_context_monitor(
         {
             let mut last_hwnd: Option<isize> = None;
             let mut last_hash = String::new();
+            let mut last_sample: Vec<u8> = Vec::new();
             let mut dirty = false;
             let mut changed_at = Instant::now();
+            let mut first_changed_at = Instant::now();
             let mut pending_jpeg: Option<Vec<u8>> = None;
             let mut pending_app = String::new();
             let mut pending_title = String::new();
@@ -260,9 +353,28 @@ pub fn start_chat_context_monitor(
                     _ => continue,
                 };
 
+                // Scenario 1: Focus switched away to another application (Blur Drain)
                 if !platform_impl::is_chat_target(&metadata.source_app, &metadata.window_title) {
-                    dirty = false;
-                    pending_jpeg = None;
+                    if let Some(old_hwnd) = last_hwnd {
+                        // Attempt one last fresh capture of the chat window that just blurred
+                        if let Some(fresh) = tokio::task::spawn_blocking(move || platform_impl::capture_window(old_hwnd)).await.ok().flatten() {
+                            if fresh.hash != last_hash {
+                                pending_jpeg = Some(fresh.jpeg_bytes);
+                                dirty = true;
+                            }
+                        }
+                    }
+                    if dirty {
+                        if let Some(jpeg_data) = pending_jpeg.take() {
+                            let app = std::mem::take(&mut pending_app);
+                            let title = std::mem::take(&mut pending_title);
+                            dispatch_chat_snapshot(manager.clone(), state.clone(), app, title, jpeg_data).await;
+                        }
+                        dirty = false;
+                    }
+                    last_hwnd = None;
+                    last_hash.clear();
+                    last_sample.clear();
                     continue;
                 }
 
@@ -271,12 +383,28 @@ pub fn start_chat_context_monitor(
                     None => continue,
                 };
 
-                // If switched to another chat window, reset state
+                // Scenario 2: Switched to another chat window (different HWND Window Switch Drain)
                 if last_hwnd != Some(hwnd_val) {
+                    if let Some(old_hwnd) = last_hwnd {
+                        // Attempt one last fresh capture of the previous chat window
+                        if let Some(fresh) = tokio::task::spawn_blocking(move || platform_impl::capture_window(old_hwnd)).await.ok().flatten() {
+                            if fresh.hash != last_hash {
+                                pending_jpeg = Some(fresh.jpeg_bytes);
+                                dirty = true;
+                            }
+                        }
+                    }
+                    if dirty {
+                        if let Some(jpeg_data) = pending_jpeg.take() {
+                            let app = std::mem::take(&mut pending_app);
+                            let title = std::mem::take(&mut pending_title);
+                            dispatch_chat_snapshot(manager.clone(), state.clone(), app, title, jpeg_data).await;
+                        }
+                        dirty = false;
+                    }
                     last_hwnd = Some(hwnd_val);
                     last_hash.clear();
-                    dirty = false;
-                    pending_jpeg = None;
+                    last_sample.clear();
                 }
 
                 // Capture window in blocking task
@@ -291,95 +419,46 @@ pub fn start_chat_context_monitor(
 
                 let now = Instant::now();
                 if capture.hash != last_hash {
+                    // Scenario 3: Switched conversation within the same window (Large scene diff drain)
+                    let is_conversation_switch = if !last_sample.is_empty() && last_sample.len() == capture.sample.len() {
+                        let diff_count = last_sample.iter().zip(capture.sample.iter())
+                            .filter(|(&a, &b)| (a as i16 - b as i16).abs() > 20)
+                            .count();
+                        // If > 20% of 32x32 sample points changed substantially, it is a conversation or tab switch
+                        diff_count > (capture.sample.len() * 20 / 100)
+                    } else {
+                        false
+                    };
+
+                    if is_conversation_switch && dirty {
+                        // Drain previous conversation before tracking the new one
+                        if let Some(jpeg_data) = pending_jpeg.take() {
+                            let app = std::mem::take(&mut pending_app);
+                            let title = std::mem::take(&mut pending_title);
+                            dispatch_chat_snapshot(manager.clone(), state.clone(), app, title, jpeg_data).await;
+                        }
+                    }
+
+                    if !dirty || is_conversation_switch {
+                        first_changed_at = now;
+                    }
                     last_hash = capture.hash;
+                    last_sample = capture.sample;
                     changed_at = now;
                     dirty = true;
                     pending_jpeg = Some(capture.jpeg_bytes);
                     pending_app = metadata.source_app.clone();
                     pending_title = metadata.window_title.clone();
-                } else if dirty && now.duration_since(changed_at) >= SETTLE_DELAY {
-                    // Settled after change! Trigger snapshot sync
-                    dirty = false;
-                    if let Some(jpeg_data) = pending_jpeg.take() {
-                        let collector_cfg = manager.config_repo().load_collector_config().await.ok().flatten();
-                        if let Some(cfg) = collector_cfg {
-                            if cfg.enabled && !cfg.endpoint.is_empty() && !cfg.token.is_empty() {
-                                let app_name = pending_app.clone();
-                                let title = pending_title.clone();
-                                let current_mode = state.mode();
-                                tauri::async_runtime::spawn(async move {
-                                    if current_mode == "local_ocr" {
-                                        let ocr = NativeOcr::new();
-                                        match ocr.recognize_bytes(&jpeg_data).await {
-                                            Ok(res) => {
-                                                let mut messages = Vec::new();
-                                                for line in res.text.lines() {
-                                                    let trimmed = line.trim();
-                                                    if trimmed.is_empty() {
-                                                        continue;
-                                                    }
-                                                    messages.push(StoredDialogueMessage {
-                                                        speaker: "chat".to_string(),
-                                                        role: "user".to_string(),
-                                                        content: trimmed.to_string(),
-                                                    });
-                                                }
-                                                if !messages.is_empty() {
-                                                    let payload = ContextSnapshotPayload {
-                                                        captured_at: chrono::Utc::now().to_rfc3339(),
-                                                        source_app: &app_name,
-                                                        window_title: &title,
-                                                        engine: Some("local_ocr"),
-                                                        image_format: None,
-                                                        image_base64: None,
-                                                        messages: Some(messages),
-                                                    };
-                                                    if let Err(e) = send_context_snapshot_to_collector(
-                                                        &cfg.endpoint,
-                                                        &cfg.token,
-                                                        &payload,
-                                                    ).await {
-                                                        eprintln!("[ChatContextCapture] Upload local OCR failed: {e}");
-                                                    } else {
-                                                        println!("[ChatContextCapture] Successfully uploaded local OCR snapshot for {app_name} - {title}");
-                                                    }
-                                                }
-                                            }
-                                            Err(e) => {
-                                                eprintln!("[ChatContextCapture] Local OCR recognition failed: {e}");
-                                            }
-                                        }
-                                    } else {
-                                        use base64::Engine;
-                                        let b64 = base64::engine::general_purpose::STANDARD.encode(&jpeg_data);
-                                        let payload = ContextSnapshotPayload {
-                                            captured_at: chrono::Utc::now().to_rfc3339(),
-                                            source_app: &app_name,
-                                            window_title: &title,
-                                            engine: Some("cloud_llm"),
-                                            image_format: Some("jpeg"),
-                                            image_base64: Some(b64),
-                                            messages: None,
-                                        };
-                                        if let Err(e) = send_context_snapshot_to_collector(
-                                            &cfg.endpoint,
-                                            &cfg.token,
-                                            &payload,
-                                        ).await {
-                                            eprintln!("[ChatContextCapture] Upload snapshot error: {e}");
-                                        } else {
-                                            println!("[ChatContextCapture] Successfully uploaded snapshot for {app_name} - {title}");
-                                        }
-                                    }
-                                });
-                            } else {
-                                println!(
-                                    "[ChatContextCapture] Settled snapshot captured for {} ({}), size {} KB (Collector not active)",
-                                    pending_app,
-                                    pending_title,
-                                    jpeg_data.len() / 1024
-                                );
-                            }
+                } else if dirty {
+                    let settled = now.duration_since(changed_at) >= SETTLE_DELAY;
+                    let max_reached = now.duration_since(first_changed_at) >= MAX_SETTLE_DELAY;
+
+                    if settled || max_reached {
+                        dirty = false;
+                        if let Some(jpeg_data) = pending_jpeg.take() {
+                            let app = std::mem::take(&mut pending_app);
+                            let title = std::mem::take(&mut pending_title);
+                            dispatch_chat_snapshot(manager.clone(), state.clone(), app, title, jpeg_data).await;
                         }
                     }
                 }

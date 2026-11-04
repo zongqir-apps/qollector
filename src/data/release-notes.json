@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.6.25",
+      "publishedAt": "2026-11-04",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-25",
+      "summary": {
+        "zh-CN": "优化聊天上下文感知：支持切应用失焦即交与同窗口切会话秒级补录，防抖缩减至 3 秒，修复图片预览窗口大模型提取。",
+        "en-US": "Optimized chat context capture: added drain on blur and in-window chat switch, reduced debounce to 3s, and fixed vision AI extraction in image preview windows."
+      },
+      "highlights": {
+        "zh-CN": [
+          "失焦与切换会话秒级补录（Drain on Switch / Blur）：无论是切出微信到其他应用，还是在微信内切换不同联系人/群聊，系统均会在切换瞬间自动截取上一会话的最终画面并提交，彻底解决切走导致消息漏截的问题。",
+          "感知防抖缩短至 3 秒并引入 8 秒最大兜底：单句对话停顿 3 秒即刻同步，连续高频讨论满 8 秒强制落盘，彻底消除防抖饥饿。",
+          "优化图片/截图预览窗口识别：针对企业微信『预览』窗口动态切换针对性 Prompt，精准提取图片内部的聊天记录长图与文档要点，解决此前空回的问题。",
+          "客户端上传超时提升至 30 秒，画面变动采样排除区优化，避免误截断最新冒出的消息气泡。"
+        ],
+        "en-US": [
+          "Instant Drain on Blur & Chat Switch: auto-captures and flushes the final state of previous conversations when switching applications or changing chats in the sidebar, preventing missed context.",
+          "Reduced debounce to 3s with an 8s maximum flush ceiling: settles conversational turns faster while preventing debounce starvation during continuous rapid typing.",
+          "Enhanced Image Preview Extraction: dynamically adapts Vision AI prompts for 'Preview' image windows to accurately parse embedded chat screenshot dialogues and diagrams.",
+          "Increased client upload timeout to 30s and refined input box exclusion boundaries to ensure newest bubbles are detected immediately."
+        ]
+      }
+    },
+    {
       "version": "0.6.24",
       "publishedAt": "2026-11-01",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-24",

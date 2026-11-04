@@ -528,7 +528,7 @@
       "inputCapture": "Capture input that does not reach the clipboard",
       "inputCaptureHint": "Use this for direct IME input, chat boxes, and other text that never reaches the clipboard. Supported field text is added to the same history for search and self-hosted analysis. Password fields, Qollect itself, and text that existed before enabling are skipped.",
       "chatContextCapture": "Chat context perception (WeChat/WeCom snapshots)",
-      "chatContextCaptureHint": "When active in WeChat or WeCom chat windows, detects new message changes and captures settled snapshots after a 10s pause to sync with Collector for archive. Operates locally if Collector is not configured.",
+      "chatContextCaptureHint": "When active in WeChat or WeCom chat windows, detects new message changes and captures snapshots after a 3s pause or upon switching window/chat to sync with Collector for archive. Operates locally if Collector is not configured.",
       "chatContextCaptureMode": "Extraction Engine",
       "chatContextCaptureModeHint": "Select extraction engine for chat context (both require configuring Collector below for archive sync):",
       "chatContextCaptureModeLocalOcr": "Local OCR mode (Recommended)",

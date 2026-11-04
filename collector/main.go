@@ -164,8 +164,8 @@ func main() {
 		Addr:              ":" + cfg.Port,
 		Handler:           loggingMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
@@ -387,6 +387,14 @@ func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialo
 	}
 	dataURL := fmt.Sprintf("data:image/%s;base64,%s", format, snapshot.ImageBase64)
 
+	var promptText string
+	titleLower := strings.ToLower(snapshot.WindowTitle)
+	if strings.Contains(titleLower, "预览") || strings.Contains(titleLower, "图片") || strings.Contains(titleLower, "preview") {
+		promptText = "这是一张在微信/企业微信图片预览窗口中查看的图片或聊天记录长截图。请仔细识别并提取图片中的所有对话、消息或关键图文记录。严格以标准 JSON 数组输出每一条消息：[{\"speaker\": \"发送人昵称或内容归属\", \"role\": \"user或peer\", \"time\": \"时间（若无则填空字符串）\", \"content\": \"正文内容\"}]。若为聊天记录截图，请按对话条目提取；若为工作文档、架构或方案图，请提炼核心文字提取为条目。只输出纯 JSON，不要包含任何 markdown 解释或代码块标签。"
+	} else {
+		promptText = "这是一张微信/企业微信聊天窗口截图（可能包含常规会话或图片/聊天截图分享）。请识别其中的连续对话。忽略侧边栏、菜单和输入框，严格以标准 JSON 数组输出每一条消息：[{\"speaker\": \"发送人昵称（右边是我，左边是对方昵称）\", \"role\": \"user或peer\", \"time\": \"时间\", \"content\": \"正文\"}]。如果画面中有引用的聊天截图或转发内容，也请一并提取。只输出纯 JSON，不要包含任何 markdown 解释或代码块标签。"
+	}
+
 	reqPayload := openAIChatRequest{
 		Model: c.cfg.AIModel,
 		Messages: []openAIChatMessage{
@@ -399,7 +407,7 @@ func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialo
 					},
 					{
 						Type: "text",
-						Text: "这是一张微信/企业微信聊天窗口截图。请识别其中的连续对话。忽略侧边栏、菜单和输入框，严格以标准 JSON 数组输出每一条消息：[{\"speaker\": \"发送人昵称（右边是我，左边是对方昵称）\", \"role\": \"user或peer\", \"time\": \"时间\", \"content\": \"正文\"}]。只输出纯 JSON，不要包含任何 markdown 解释或代码块标签。",
+						Text: promptText,
 					},
 				},
 			},
@@ -457,6 +465,11 @@ func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialo
 
 func cleanDialogueJSON(raw string) string {
 	raw = strings.TrimSpace(raw)
+	if start := strings.Index(raw, "["); start != -1 {
+		if end := strings.LastIndex(raw, "]"); end > start {
+			return raw[start : end+1]
+		}
+	}
 	if strings.HasPrefix(raw, "```") {
 		idx := strings.Index(raw, "\n")
 		if idx != -1 {
