@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -92,5 +93,54 @@ func TestLocalOCRMessagesValidation(t *testing.T) {
 	}
 	if req.Engine != "local_ocr" {
 		t.Fatalf("unexpected engine %q", req.Engine)
+	}
+}
+
+func TestSanitizeJSONStringLiteralsWithUnescapedNewlines(t *testing.T) {
+	// Raw JSON containing illegal unescaped newline and tab inside string literal
+	rawWithNewlines := "[\n  {\n    \"speaker\": \"张三\",\n    \"role\": \"peer\",\n    \"content\": \"第一行\n第二行\t含Tab\"\n  }\n]"
+	cleaned := cleanDialogueJSON(rawWithNewlines)
+	if strings.Contains(cleaned, "第一行\n第二行") {
+		t.Fatalf("cleanDialogueJSON failed to escape literal newline inside string: %s", cleaned)
+	}
+	if !strings.Contains(cleaned, `第一行\n第二行`) {
+		t.Fatalf("expected escaped newline, got: %s", cleaned)
+	}
+
+	// Verify it unmarshals successfully
+	var messages []storedDialogueMessage
+	if err := json.Unmarshal([]byte(cleaned), &messages); err != nil {
+		t.Fatalf("failed to unmarshal sanitized JSON: %v", err)
+	}
+	if len(messages) != 1 || messages[0].Speaker != "张三" {
+		t.Fatalf("unexpected unmarshaled message: %+v", messages)
+	}
+	if messages[0].Content != "第一行\n第二行\t含Tab" {
+		t.Fatalf("unexpected message content: %q", messages[0].Content)
+	}
+}
+
+func TestIsLikelyNonChatWindow(t *testing.T) {
+	cases := []struct {
+		title    string
+		expected bool
+	}{
+		{"企业微信-文档", true},
+		{"腾讯文档 - 季度复盘", true},
+		{"微文档", true},
+		{"企业微信 的跳转列表", true},
+		{"选择聊天", true},
+		{"发起群聊", true},
+		{"项目群", false},
+		{"企业微信", false},
+		{"雷永成(91044)", false},
+		{"APEX+XDR研发TL&PM&TSE", false},
+	}
+
+	for _, c := range cases {
+		got := isLikelyNonChatWindow(c.title)
+		if got != c.expected {
+			t.Errorf("isLikelyNonChatWindow(%q) = %v; want %v", c.title, got, c.expected)
+		}
 	}
 }

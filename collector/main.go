@@ -132,10 +132,11 @@ type openAIChatResponse struct {
 }
 
 type collector struct {
-	cfg    config
-	mu     sync.Mutex
-	rateMu sync.Mutex
-	rate   map[string][]time.Time
+	cfg       config
+	mu        sync.Mutex
+	rateMu    sync.Mutex
+	rate      map[string][]time.Time
+	visionSem chan struct{}
 }
 
 func main() {
@@ -151,7 +152,11 @@ func main() {
 		log.Fatalf("create context directory: %v", err)
 	}
 
-	c := &collector{cfg: cfg, rate: make(map[string][]time.Time)}
+	c := &collector{
+		cfg:       cfg,
+		rate:      make(map[string][]time.Time),
+		visionSem: make(chan struct{}, 2),
+	}
 	c.pruneOldDays(time.Now())
 	go c.cleanupLoop()
 
@@ -354,6 +359,28 @@ func (c *collector) handleContextSnapshot(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		if isLikelyNonChatWindow(req.WindowTitle) {
+			log.Printf("Skipping Vision AI for non-chat window: %s (%s)", req.SourceApp, req.WindowTitle)
+			record := storedContextSnapshot{
+				CapturedAt:  req.CapturedAt,
+				ReceivedAt:  time.Now().UTC().Format(time.RFC3339Nano),
+				SourceApp:   req.SourceApp,
+				WindowTitle: req.WindowTitle,
+				Model:       "skipped_non_chat",
+				Messages:    nil,
+			}
+			if appendErr := c.appendContext(record); appendErr != nil {
+				log.Printf("Failed to append context snapshot: %v", appendErr)
+			}
+			return
+		}
+
+		// Throttle concurrent Vision AI requests to avoid overwhelming upstream providers
+		if c.visionSem != nil {
+			c.visionSem <- struct{}{}
+			defer func() { <-c.visionSem }()
+		}
+
 		msgs, raw, err := c.callVisionAI(req)
 		record := storedContextSnapshot{
 			CapturedAt:  req.CapturedAt,
@@ -374,6 +401,28 @@ func (c *collector) handleContextSnapshot(w http.ResponseWriter, r *http.Request
 			log.Printf("Failed to append context snapshot: %v", appendErr)
 		}
 	}()
+}
+
+func isLikelyNonChatWindow(title string) bool {
+	t := strings.TrimSpace(title)
+	if t == "" {
+		return false
+	}
+	ignoredSubstrings := []string{
+		"-文档",
+		"腾讯文档",
+		"微文档",
+		"新建文档",
+		"跳转列表",
+		"选择聊天",
+		"发起群聊",
+	}
+	for _, sub := range ignoredSubstrings {
+		if strings.Contains(t, sub) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialogueMessage, string, error) {
@@ -420,27 +469,56 @@ func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialo
 	}
 
 	endpoint := strings.TrimRight(c.cfg.AIBaseURL, "/") + "/chat/completions"
-	httpReq, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return nil, "", err
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.cfg.AIAPIKey)
+	client := &http.Client{Timeout: 120 * time.Second}
 
-	client := &http.Client{Timeout: 90 * time.Second}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		return nil, "", err
+	var resp *http.Response
+	var lastErr error
+	maxRetries := 1
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(1500 * time.Millisecond)
+			log.Printf("Retrying Vision AI request (attempt %d) for %s (%s)...", attempt+1, snapshot.SourceApp, snapshot.WindowTitle)
+		}
+
+		httpReq, reqErr := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
+		if reqErr != nil {
+			return nil, "", reqErr
+		}
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+c.cfg.AIAPIKey)
+
+		resp, err = client.Do(httpReq)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if resp.StatusCode == http.StatusOK {
+			lastErr = nil
+			break
+		}
+
+		respBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		lastErr = fmt.Errorf("AI API returned status %d: %s", resp.StatusCode, string(respBytes))
+
+		// Only retry for server busy (503), internal server error (500), bad gateway (502) or rate limit (429)
+		if resp.StatusCode != http.StatusServiceUnavailable &&
+			resp.StatusCode != http.StatusInternalServerError &&
+			resp.StatusCode != http.StatusBadGateway &&
+			resp.StatusCode != http.StatusTooManyRequests {
+			return nil, string(respBytes), lastErr
+		}
+	}
+
+	if lastErr != nil {
+		return nil, "", lastErr
 	}
 	defer resp.Body.Close()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, "", err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, string(respBytes), fmt.Errorf("AI API returned status %d: %s", resp.StatusCode, string(respBytes))
 	}
 
 	var chatResp openAIChatResponse
@@ -463,11 +541,52 @@ func (c *collector) callVisionAI(snapshot contextSnapshotRequest) ([]storedDialo
 	return messages, rawContent, nil
 }
 
+func sanitizeJSONStringLiterals(raw string) string {
+	var sb strings.Builder
+	sb.Grow(len(raw) + 16)
+	inString := false
+	escaped := false
+
+	for i := 0; i < len(raw); i++ {
+		b := raw[i]
+		if escaped {
+			sb.WriteByte(b)
+			escaped = false
+			continue
+		}
+		if b == '\\' {
+			sb.WriteByte(b)
+			escaped = true
+			continue
+		}
+		if b == '"' {
+			inString = !inString
+			sb.WriteByte(b)
+			continue
+		}
+		if inString {
+			switch b {
+			case '\n':
+				sb.WriteString(`\n`)
+				continue
+			case '\r':
+				sb.WriteString(`\r`)
+				continue
+			case '\t':
+				sb.WriteString(`\t`)
+				continue
+			}
+		}
+		sb.WriteByte(b)
+	}
+	return sb.String()
+}
+
 func cleanDialogueJSON(raw string) string {
 	raw = strings.TrimSpace(raw)
 	if start := strings.Index(raw, "["); start != -1 {
 		if end := strings.LastIndex(raw, "]"); end > start {
-			return raw[start : end+1]
+			return sanitizeJSONStringLiterals(raw[start : end+1])
 		}
 	}
 	if strings.HasPrefix(raw, "```") {
@@ -479,7 +598,7 @@ func cleanDialogueJSON(raw string) string {
 			raw = strings.TrimSpace(raw[:lastIdx])
 		}
 	}
-	return strings.TrimSpace(raw)
+	return sanitizeJSONStringLiterals(strings.TrimSpace(raw))
 }
 
 func clientIP(r *http.Request) string {
