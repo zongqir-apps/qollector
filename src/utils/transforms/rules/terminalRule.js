@@ -10,9 +10,13 @@ const NATURAL_LANGUAGE_PREFIXES = /^(?:make\s+sure|go\s+to|find\s+(?:a|the|some|
 // 排除常见文档标题与代码注释首词（防止 # 误触）
 const COMMENT_HEADER_PREFIXES = /^(?:TODO|NOTE|FIXME|WARN|WARNING|TIP|IMPORTANT|CAUTION|DEBUG|INFO|NOTICE|BUG|XXX|SEE|HACK|AUTHOR|LICENSE|COPYRIGHT|CONFIG|CONFIGURATION|PARAMS|TITLE|DESCRIPTION|SETUP|INSTALLATION|USAGE|EXAMPLES?|BUILD|OPTIONS?)\b/i;
 
+// 括号粘贴模式（Bracketed Paste Mode）转义残留: \x1b[200~, ^[[200~, 200~, ~200 及结尾 ~201, 201~ 等
+const BRACKETED_PASTE_START_RE = /^(?:\x1b\[200~|\^\[\[200~|\[200~|200~|~200)\s*/;
+const BRACKETED_PASTE_END_RE = /\s*(?:\x1b\[201~|\^\[\[201~|\[201~|201~|~201)$/;
+
 /**
- * 诊断并剥离单行的终端提示符。
- * 若非终端命令行，保留原行不变。
+ * 诊断并剥离单行的终端提示符与括号粘贴控制残渣（~200 / 200~ 等）。
+ * 若非终端命令行或污染行，保留原行不变。
  * @param {string} line
  * @returns {{ isCommand: boolean, cleaned: string }}
  */
@@ -28,20 +32,32 @@ export function cleanTerminalCommandLine(line) {
 
   const indent = line.match(/^\s*/)[0];
 
-  // 1. PowerShell 提示符: PS C:\Users\xxx> command 或 PS /home/xxx> command
-  const psMatch = trimmed.match(/^PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s+[/~][^\n\r>]*|\s+[^\n\r>]+)?>\s*(\S.*)$/i);
+  // 1. 括号粘贴模式（Bracketed Paste Mode）残留检测与预脱壳: ~200 / 200~ / ^[[200~ 等
+  let stripped = trimmed;
+  let hasBracketedPaste = false;
+  if (BRACKETED_PASTE_START_RE.test(stripped)) {
+    stripped = stripped.replace(BRACKETED_PASTE_START_RE, '');
+    hasBracketedPaste = true;
+  }
+  if (BRACKETED_PASTE_END_RE.test(stripped)) {
+    stripped = stripped.replace(BRACKETED_PASTE_END_RE, '');
+    hasBracketedPaste = true;
+  }
+
+  // 2. PowerShell 提示符: PS C:\Users\xxx> command 或 PS /home/xxx> command
+  const psMatch = stripped.match(/^PS(?:\s+[a-zA-Z]:[^\n\r>]*|\s+[/~][^\n\r>]*|\s+[^\n\r>]+)?>\s*(\S.*)$/i);
   if (psMatch) {
     return { isCommand: true, cleaned: indent + psMatch[1] };
   }
 
-  // 2. 带主机/用户信息的 Shell 提示符: root@host:~# cmd, user@host:~$ cmd, [root@centos ~]# cmd
-  const hostMatch = trimmed.match(/^(?:[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+(?:\s*\[[^\]]+\]|\s*:[^\n\r$#]*)?|[a-zA-Z0-9_.-]+:[^\n\r$#]+|[[(][a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+[^\])]*[\])])\s*[$#]\s*(\S.*)$/);
+  // 3. 带主机/用户信息的 Shell 提示符: root@host:~# cmd, user@host:~$ cmd, [root@centos ~]# cmd
+  const hostMatch = stripped.match(/^(?:[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+(?:\s*\[[^\]]+\]|\s*:[^\n\r$#]*)?|[a-zA-Z0-9_.-]+:[^\n\r$#]+|[[(][a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+[^\])]*[\])])\s*[$#]\s*(\S.*)$/);
   if (hostMatch) {
     return { isCommand: true, cleaned: indent + hostMatch[1] };
   }
 
-  // 3. 简短 $ 提示符: $ npm install, $ git status, $ ./run.sh
-  const dollarMatch = trimmed.match(/^\$\s+([a-zA-Z0-9_./-]+)(.*)$/);
+  // 4. 简短 $ 提示符: $ npm install, $ git status, $ ./run.sh
+  const dollarMatch = stripped.match(/^\$\s+([a-zA-Z0-9_./-]+)(.*)$/);
   if (dollarMatch) {
     const firstWord = dollarMatch[1];
     const rest = dollarMatch[2];
@@ -59,11 +75,11 @@ export function cleanTerminalCommandLine(line) {
     }
   }
 
-  // 4. 简短 # 提示符 (root 模式): 严防误伤 Markdown 一级标题（# 标题）与 YAML/代码注释
-  const hashMatch = trimmed.match(/^#\s+([a-zA-Z0-9_./-]+)(.*)$/);
+  // 5. 简短 # 提示符 (root 模式): 严防误伤 Markdown 一级标题（# 标题）与 YAML/代码注释
+  const hashMatch = stripped.match(/^#\s+([a-zA-Z0-9_./-]+)(.*)$/);
   if (hashMatch) {
     // 严禁包含 CJK 字符（彻底排除中文 Markdown 一级标题与中文注释）
-    if (!/[\u4e00-\u9fa5]/.test(trimmed)) {
+    if (!/[\u4e00-\u9fa5]/.test(stripped)) {
       const firstWord = hashMatch[1];
       const rest = hashMatch[2];
       const fullCmd = (firstWord + rest).trim();
@@ -80,10 +96,10 @@ export function cleanTerminalCommandLine(line) {
     }
   }
 
-  // 5. Markdown 引用格式命令行: > npm install @dnd-kit/core
-  const quoteMatch = trimmed.match(/^>\s+([a-zA-Z0-9_./-]+)(.*)$/);
+  // 6. Markdown 引用格式命令行: > npm install @dnd-kit/core
+  const quoteMatch = stripped.match(/^>\s+([a-zA-Z0-9_./-]+)(.*)$/);
   if (quoteMatch) {
-    if (!/[\u4e00-\u9fa5]/.test(trimmed)) {
+    if (!/[\u4e00-\u9fa5]/.test(stripped)) {
       const firstWord = quoteMatch[1];
       const rest = quoteMatch[2];
       const fullCmd = (firstWord + rest).trim();
@@ -94,6 +110,11 @@ export function cleanTerminalCommandLine(line) {
         }
       }
     }
+  }
+
+  // 7. 如果本身携带了明确的 bracketed paste 杂质（如 ~200, 200~, ^[[200~），直接认定为受污染的终端行并返回净化后的内容
+  if (hasBracketedPaste && stripped.length > 0) {
+    return { isCommand: true, cleaned: indent + stripped };
   }
 
   return { isCommand: false, cleaned: line };

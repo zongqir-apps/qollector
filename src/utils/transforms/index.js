@@ -4,14 +4,23 @@
 
 import { unicodeRule } from './rules/unicodeRule.js';
 import { terminalRule } from './rules/terminalRule.js';
+import { lineNumberRule } from './rules/lineNumberRule.js';
 import { pathRule } from './rules/pathRule.js';
 import { tokenRule } from './rules/tokenRule.js';
+import { unescapeRule } from './rules/unescapeRule.js';
+import { base64Rule } from './rules/base64Rule.js';
 import { urlRule } from './rules/urlRule.js';
+import { urlParamsRule } from './rules/urlParamsRule.js';
 import { jsonPrettyRule, jsonCompactRule, jsonToYamlRule } from './rules/jsonRule.js';
 import { yamlToJsonRule, yamlPrettyRule } from './rules/yamlRule.js';
+import { sqlRule } from './rules/sqlRule.js';
 import { envRule } from './rules/envRule.js';
 import { gitRule } from './rules/gitRule.js';
 import { timestampRule } from './rules/timestampRule.js';
+import { unwrapLinesRule } from './rules/unwrapLinesRule.js';
+import { jwtRule } from './rules/jwtRule.js';
+import { tsvToMarkdownRule } from './rules/tsvToMarkdownRule.js';
+import { jsToJsonRule } from './rules/jsToJsonRule.js';
 
 /**
  * 已注册的转换规则集（按顺序评估）
@@ -19,17 +28,26 @@ import { timestampRule } from './rules/timestampRule.js';
 export const TRANSFORM_REGISTRY = [
   unicodeRule,
   terminalRule,
+  lineNumberRule,
   pathRule,
   tokenRule,
+  unescapeRule,
+  base64Rule,
   urlRule,
+  urlParamsRule,
   jsonPrettyRule,
   jsonCompactRule,
   yamlToJsonRule,
   yamlPrettyRule,
   jsonToYamlRule,
+  sqlRule,
   envRule,
   gitRule,
   timestampRule,
+  unwrapLinesRule,
+  jwtRule,
+  tsvToMarkdownRule,
+  jsToJsonRule,
 ];
 
 /**
@@ -69,15 +87,24 @@ export function getTransformRule(id) {
 export {
   unicodeRule,
   terminalRule,
+  lineNumberRule,
   pathRule,
   tokenRule,
+  unescapeRule,
+  base64Rule,
   urlRule,
+  urlParamsRule,
   jsonPrettyRule,
   jsonCompactRule,
   yamlToJsonRule,
   yamlPrettyRule,
   jsonToYamlRule,
+  sqlRule,
   envRule,
   gitRule,
   timestampRule,
+  unwrapLinesRule,
+  jwtRule,
+  tsvToMarkdownRule,
+  jsToJsonRule,
 };
