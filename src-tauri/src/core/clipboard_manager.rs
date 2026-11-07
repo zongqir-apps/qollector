@@ -2531,6 +2531,10 @@ impl ClipboardManager {
             return Some("json".to_string());
         }
 
+        if Self::looks_like_yaml(trimmed) {
+            return Some("yaml".to_string());
+        }
+
         if (upper.contains("SELECT ") && upper.contains(" FROM "))
             || upper.contains("INSERT INTO ")
             || upper.contains("UPDATE ")
@@ -2606,12 +2610,58 @@ impl ClipboardManager {
         None
     }
 
+    fn looks_like_yaml(text: &str) -> bool {
+        // 排除被 JSON 包裹的内容
+        if (text.starts_with('{') && text.ends_with('}'))
+            || (text.starts_with('[') && text.ends_with(']'))
+        {
+            return false;
+        }
+
+        // 排除含明显 HTML/XML 闭合标签的内容
+        if text.contains("</") || text.contains("<!DOCTYPE") || text.contains("<html") {
+            return false;
+        }
+
+        let lines: Vec<&str> = text
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+            .collect();
+        if lines.len() < 2 {
+            return false;
+        }
+
+        let mut yaml_structural_lines = 0;
+        for line in &lines {
+            if *line == "---"
+                || line.starts_with("#")
+                || line.starts_with("- ")
+                || (line.contains(':') && !line.starts_with("http://") && !line.starts_with("https://"))
+            {
+                yaml_structural_lines += 1;
+            }
+        }
+
+        // 绝大部分有效行具备 YAML 结构特征（键值对、列表项、注释、---）
+        let ratio = yaml_structural_lines as f32 / lines.len() as f32;
+        ratio >= 0.7 && lines.iter().any(|l| l.contains(':') || l.starts_with("- "))
+    }
+
     fn looks_like_code_fast(text: &str) -> bool {
         const CODE_KEYWORDS: [&str; 20] = [
             "=>", "->", "::", "//", "/*", "*/", "#include", "import ", "from ", "def ", "fn ",
             "func ", "class ", "const ", "let ", "var ", "return ", "select ", "create ", "alter ",
         ];
         if text.chars().any(|c| "{};=<>()[ ]".contains(c) && c != ' ') {
+            return true;
+        }
+
+        // YAML 特征感知：文档分隔符或缩进键值对/列表
+        if text.starts_with("---")
+            || ((text.contains(":\n") || text.contains(": "))
+                && (text.contains("\n  ") || text.contains("\n- ")))
+        {
             return true;
         }
 

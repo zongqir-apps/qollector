@@ -64,7 +64,14 @@ function looksLikeCode(text) {
 
   // Code indicators: braces, semicolons, arrows, common keywords, etc.
   const codeSignals = /[{};=<>()[\]]|=>|->|::|\/\/|\/\*|\*\/|#include|import |from |def |fn |func |class |const |let |var |return |if\s*\(|for\s*\(|while\s*\(|SELECT |INSERT |CREATE |ALTER /;
-  return codeSignals.test(trimmed);
+  if (codeSignals.test(trimmed)) return true;
+
+  // YAML indicators: document headers (---), indented key-value mappings, or list items
+  const isYamlPattern = /^---\s*$/m.test(trimmed) || (
+    /(?:^|\n)\s*[a-zA-Z0-9_.-]+\s*:\s*(?:$|\S)/.test(trimmed) &&
+    /(?:^|\n)\s*(?:-\s+\S|[a-zA-Z0-9_.-]+\s*:)/.test(trimmed)
+  );
+  return isYamlPattern;
 }
 
 export async function detectLanguage(code) {

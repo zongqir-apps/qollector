@@ -1,4 +1,5 @@
-import { Braces, FileJson } from 'lucide-react';
+import { Braces, FileJson, FileCode } from 'lucide-react';
+import YAML from 'yaml';
 import { TRANSFORM_CATEGORIES } from '../types.js';
 
 const MAX_JSON_PARSE_LENGTH = 500000;
@@ -76,3 +77,29 @@ export const jsonCompactRule = {
     }
   },
 };
+
+export const jsonToYamlRule = {
+  id: 'json_to_yaml',
+  category: TRANSFORM_CATEGORIES.CONVERT,
+  icon: FileCode,
+  labelKey: 'transforms.jsonToYaml',
+  titleKey: 'transforms.jsonToYamlTitle',
+  priority: 64,
+  previewable: false,
+
+  match: (text) => {
+    const parsed = safeParseJson(text);
+    return parsed !== null;
+  },
+
+  apply: (text) => {
+    const parsed = safeParseJson(text);
+    if (parsed === null) return text;
+    try {
+      return YAML.stringify(parsed, { indent: 2 });
+    } catch {
+      return text;
+    }
+  },
+};
+

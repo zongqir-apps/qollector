@@ -7,7 +7,8 @@ import { terminalRule } from './rules/terminalRule.js';
 import { pathRule } from './rules/pathRule.js';
 import { tokenRule } from './rules/tokenRule.js';
 import { urlRule } from './rules/urlRule.js';
-import { jsonPrettyRule, jsonCompactRule } from './rules/jsonRule.js';
+import { jsonPrettyRule, jsonCompactRule, jsonToYamlRule } from './rules/jsonRule.js';
+import { yamlToJsonRule, yamlPrettyRule } from './rules/yamlRule.js';
 import { envRule } from './rules/envRule.js';
 import { gitRule } from './rules/gitRule.js';
 import { timestampRule } from './rules/timestampRule.js';
@@ -23,6 +24,9 @@ export const TRANSFORM_REGISTRY = [
   urlRule,
   jsonPrettyRule,
   jsonCompactRule,
+  yamlToJsonRule,
+  yamlPrettyRule,
+  jsonToYamlRule,
   envRule,
   gitRule,
   timestampRule,
@@ -70,6 +74,9 @@ export {
   urlRule,
   jsonPrettyRule,
   jsonCompactRule,
+  yamlToJsonRule,
+  yamlPrettyRule,
+  jsonToYamlRule,
   envRule,
   gitRule,
   timestampRule,
