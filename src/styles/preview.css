@@ -832,7 +832,7 @@
 }
 
 .preview-note-section:not(.has-note):not(.is-editing) {
-  align-items: flex-start;
+  align-items: flex-end;
   border: none;
   background: transparent;
   padding: 2px 0;
@@ -846,10 +846,10 @@
 .preview-note-section.is-editing {
   align-items: stretch;
   min-height: calc(100% - 16px);
-  padding: 12px 14px;
+  padding: 12px 14px 10px;
   margin: 0 16px 8px;
   border-radius: 10px;
-  border: 1px solid var(--accent-color);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 35%, var(--border-light));
   background: var(--control-panel-bg);
   box-shadow: 0 4px 18px color-mix(in srgb, var(--shadow-sm) 80%, transparent);
 }
@@ -860,7 +860,7 @@
   justify-content: space-between;
   gap: 8px;
   padding-bottom: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   border-bottom: 1px solid color-mix(in srgb, var(--control-panel-border) 80%, transparent);
 }
 
@@ -873,10 +873,36 @@
   color: var(--text-primary);
 }
 
+.preview-note-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .preview-note-header-hint {
   font-size: 11px;
   color: var(--text-tertiary);
   user-select: none;
+}
+
+.preview-note-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.preview-note-close-btn:hover {
+  background: var(--control-button-hover-bg);
+  color: var(--text-primary);
 }
 
 .preview-note-section .note-display-bar--preview {
@@ -910,21 +936,23 @@
   min-height: 180px;
   max-height: none;
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 2px;
   font-size: 13px;
   line-height: 1.6;
-  border: 1px solid var(--control-button-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--control-panel-bg) 50%, var(--surface-card) 50%);
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-primary);
-  resize: vertical;
+  resize: none;
   box-sizing: border-box;
+  outline: none;
+  box-shadow: none;
 }
 
 .preview-note-section.is-editing .note-edit-input:focus {
-  border-color: var(--accent-color);
+  border: none;
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 20%, transparent);
+  box-shadow: none;
 }
 
 .preview-note-section .note-edit-footer {
@@ -932,15 +960,71 @@
 }
 
 .preview-note-section.is-editing .note-edit-footer {
-  padding: 8px 2px 2px;
+  padding: 8px 0 2px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-top: 1px solid color-mix(in srgb, var(--border-light) 40%, transparent);
+  margin-top: 4px;
+}
+
+.preview-note-section .note-btn-cancel--preview {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--control-button-border);
+  border-radius: 6px;
+  background: var(--control-button-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.preview-note-section .note-btn-cancel--preview:hover {
+  background: var(--control-button-hover-bg);
+  color: var(--text-primary);
+  border-color: var(--control-button-hover-border);
+}
+
+.preview-note-section .note-btn-save--preview {
+  height: 28px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-color) 25%, transparent);
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.preview-note-section .note-btn-save--preview:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-color) 35%, transparent);
+  transform: translateY(-0.5px);
 }
 
 @container preview-panel (max-width: 380px) {
   .preview-note-header-hint {
     display: none;
+  }
+
+  .preview-note-section.is-editing .note-edit-hint {
+    display: none;
+  }
+
+  .preview-note-section.is-editing .note-edit-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .preview-note-section.is-editing .note-edit-input {

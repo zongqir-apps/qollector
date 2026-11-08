@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import {
   ArrowLeft, Inbox, Star, Sparkles, Search, StickyNote,
-  ExternalLink, Check, FileText, Copy, Download, Trash2, FolderOpen, Braces, Share2, Edit2, Clock3, Palette, Bot, Lock, MoreHorizontal, Maximize2, Languages, Mail, RefreshCw, ScanText
+  ExternalLink, Check, FileText, Copy, Download, Trash2, FolderOpen, Braces, Share2, Edit2, Clock3, Palette, Bot, Lock, MoreHorizontal, Maximize2, Languages, Mail, RefreshCw, ScanText, X
 } from 'lucide-react';
 import useAppStore from '../../store/useAppStore';
 import { buildItemDerivations } from '../../store/modules/itemsIndex';
@@ -1202,7 +1202,21 @@ function PreviewPanel() {
                   <StickyNote size={14} />
                   <span>{item.user_note ? t('item.editNote') : t('item.addNote')}</span>
                 </div>
-                <span className="preview-note-header-hint">{t('edit.noteScrollHint', '往上滚动可查看原文')}</span>
+                <div className="preview-note-header-actions">
+                  <span className="preview-note-header-hint">{t('edit.noteScrollHint', '往上滚动可查看原文')}</span>
+                  <button
+                    type="button"
+                    className="preview-note-close-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cancelNoteEdit();
+                    }}
+                    title={t('common.cancel')}
+                    aria-label={t('common.cancel')}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
             )}
             <NoteDisplay
@@ -1232,7 +1246,7 @@ function PreviewPanel() {
         )}
 
         {/* 元信息 - 底部参考 */}
-        {!showAIAssistant && !isEditingContent && (
+        {!showAIAssistant && !isEditingContent && !isNoteEditing && (
           <div className="preview-meta">
             {pureColorPreview && (
               <span className="preview-meta-color">

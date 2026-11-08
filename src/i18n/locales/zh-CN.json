@@ -305,6 +305,7 @@
     "content": "内容:",
     "note": "备注:",
     "notePlaceholder": "添加备注...",
+    "noteContentPlaceholder": "输入备注内容...",
     "noteScrollHint": "往上滚动可查看原文",
     "save": "保存",
     "cancel": "取消",

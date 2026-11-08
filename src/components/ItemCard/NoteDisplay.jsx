@@ -82,7 +82,7 @@ function NoteDisplay({
           onChange={(e) => onEditNoteChange(e.target.value)}
           className="note-edit-input"
           rows={variant === 'preview' ? 6 : 2}
-          placeholder={t('edit.notePlaceholder')}
+          placeholder={variant === 'preview' ? t('edit.noteContentPlaceholder', '输入备注内容...') : t('edit.notePlaceholder')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
               e.stopPropagation();
@@ -95,7 +95,11 @@ function NoteDisplay({
           }}
         />
         <div className="note-edit-footer">
-          <span className="note-edit-hint">{isMac ? '⌘+Enter' : 'Ctrl+Enter'}</span>
+          <span className="note-edit-hint">
+            {variant === 'preview'
+              ? `${isMac ? '⌘+Enter' : 'Ctrl+Enter'} ${t('common.save')} · Esc ${t('common.cancel')}`
+              : (isMac ? '⌘+Enter' : 'Ctrl+Enter')}
+          </span>
           <div className="note-edit-actions">
             <button
               type="button"
@@ -103,10 +107,14 @@ function NoteDisplay({
                 e.stopPropagation();
                 onCancelNoteEdit();
               }}
-              className="note-btn-cancel"
+              className={`note-btn-cancel ${variant === 'preview' ? 'note-btn-cancel--preview' : ''}`}
               title={t('item.cancelNote')}
             >
-              <X size={12} />
+              {variant === 'preview' ? (
+                <span>{t('common.cancel')}</span>
+              ) : (
+                <X size={12} />
+              )}
             </button>
             <button
               type="button"
@@ -114,10 +122,11 @@ function NoteDisplay({
                 e.stopPropagation();
                 onSaveNote(item);
               }}
-              className="note-btn-save"
+              className={`note-btn-save ${variant === 'preview' ? 'note-btn-save--preview' : ''}`}
               title={t('item.saveNote')}
             >
-              <Check size={12} />
+              <Check size={variant === 'preview' ? 14 : 12} />
+              {variant === 'preview' && <span>{t('common.save')}</span>}
             </button>
           </div>
         </div>
