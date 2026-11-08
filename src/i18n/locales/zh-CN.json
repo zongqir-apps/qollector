@@ -1031,17 +1031,28 @@
     "editAction": "编辑动作",
     "actionName": "动作名称",
     "actionPrompt": "提示词 (Prompt)",
-    "actionNamePlaceholder": "例如：白话省流",
+    "actionNamePlaceholder": "例如：核心要点",
     "actionPromptPlaceholder": "输入发送给 AI 的核心系统指令...",
     "saveAction": "保存",
     "deleteAction": "删除动作",
     "resetAction": "恢复默认提示词",
     "resetAllActions": "恢复默认预设",
     "manageActions": "管理动作",
+    "chipTooltip": "{{name}} (单击执行 · 右键编辑)",
     "emptyHintTitle": "选择上方动作快速处理",
-    "emptyHintSubtitle": "或点击动作旁的编辑图标自定义提示词",
+    "emptyHintSubtitle": "单击动作直接执行，右键动作可自定义提示词",
     "runningAction": "正在执行：{{name}}...",
-    "chars": "{{count}} 字符"
+    "chars": "{{count}} 字符",
+    "scenario": {
+      "generalText": "通用文本",
+      "codeLog": "代码/排错"
+    },
+    "scenarioBadgeCodeTooltip": "情境感知：已适配代码与日志诊断预设",
+    "scenarioBadgeTextTooltip": "情境感知：已适配通用文本预设",
+    "switchToGeneral": "切换为通用文本预设",
+    "switchToCodeLog": "切换为代码/排错预设",
+    "scenarioSwitchedCode": "已切换为代码/排错动作",
+    "scenarioSwitchedText": "已切换为通用文本动作"
   },
   "panel": {
     "preview": "预览详情",

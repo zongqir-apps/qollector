@@ -1293,7 +1293,8 @@ function PreviewPanel() {
                 className="preview-meta-ai-summary"
                 title={aiRetrieval.queries?.length ? aiRetrieval.queries.join(' | ') : aiRetrieval.summary}
               >
-                💡 {aiRetrieval.summary}
+                <Sparkles size={11} className="preview-meta-ai-icon" />
+                <span className="preview-meta-ai-summary-text">{aiRetrieval.summary}</span>
               </span>
             )}
           </div>

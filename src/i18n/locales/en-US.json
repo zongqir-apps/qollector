@@ -1057,17 +1057,28 @@
     "editAction": "Edit Action",
     "actionName": "Action name",
     "actionPrompt": "Prompt",
-    "actionNamePlaceholder": "e.g., TL;DR",
+    "actionNamePlaceholder": "e.g., Key Points",
     "actionPromptPlaceholder": "Enter system prompt instruction for AI...",
     "saveAction": "Save",
     "deleteAction": "Delete action",
     "resetAction": "Reset to default prompt",
     "resetAllActions": "Reset to default presets",
     "manageActions": "Manage actions",
+    "chipTooltip": "{{name}} (Click to run · Right-click to edit)",
     "emptyHintTitle": "Select an action above to process",
-    "emptyHintSubtitle": "Or click the edit icon on an action to customize its prompt",
+    "emptyHintSubtitle": "Click action to execute, right-click to customize prompt",
     "runningAction": "Running: {{name}}...",
-    "chars": "{{count}} chars"
+    "chars": "{{count}} chars",
+    "scenario": {
+      "generalText": "General Text",
+      "codeLog": "Code / Error Log"
+    },
+    "scenarioBadgeCodeTooltip": "Scenario-aware: adapted for code and error diagnostics",
+    "scenarioBadgeTextTooltip": "Scenario-aware: adapted for general text",
+    "switchToGeneral": "Switch to General Text Presets",
+    "switchToCodeLog": "Switch to Code / Error Log Presets",
+    "scenarioSwitchedCode": "Switched to Code / Error Log presets",
+    "scenarioSwitchedText": "Switched to General Text presets"
   },
   "panel": {
     "preview": "Preview Detail",

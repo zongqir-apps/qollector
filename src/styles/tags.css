@@ -240,7 +240,7 @@
   opacity: 0.8;
 }
 
-/* ---- tags ---- */
+/* ---- tags (全色系高级胶囊设计体系) ---- */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -250,7 +250,7 @@
   min-height: 20px;
   border-radius: 9999px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 550;
   line-height: 1.35;
   letter-spacing: 0.1px;
   -webkit-font-smoothing: antialiased;
@@ -267,97 +267,118 @@
   box-sizing: border-box;
 }
 
-/* user-tag (品牌强调色通透胶囊) */
+.tag span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-ai-icon {
+  flex-shrink: 0;
+  color: var(--tag-ai-fg);
+  opacity: 0.92;
+}
+
+/* user-tag (品牌主题色全色胶囊 + 纯白高对比文字) */
 .tag.user-tag {
-  background: color-mix(in srgb, var(--accent-color) 11%, transparent);
-  color: color-mix(in srgb, var(--accent-color) 88%, var(--text-primary) 12%);
-  border-color: color-mix(in srgb, var(--accent-color) 22%, transparent);
+  background: var(--tag-user-bg);
+  color: var(--tag-user-fg);
+  border-color: transparent;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 .tag.user-tag:hover {
-  background: color-mix(in srgb, var(--accent-color) 18%, transparent);
-  border-color: color-mix(in srgb, var(--accent-color) 36%, transparent);
+  background: color-mix(in srgb, var(--tag-user-bg) 88%, var(--tag-user-fg) 12%);
+  color: var(--tag-user-fg);
   transform: translateY(-0.5px);
+  box-shadow: 0 2px 5px var(--shadow-md);
 }
 .tag.user-tag.selected {
-  background: var(--accent-color);
-  color: var(--text-on-accent);
-  border-color: var(--accent-color);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-color) 28%, transparent);
+  background: var(--tag-user-bg);
+  color: var(--tag-user-fg);
+  border-color: var(--tag-user-fg);
+  box-shadow: 0 0 0 1.5px var(--tag-user-bg), 0 2px 6px color-mix(in srgb, var(--tag-user-bg) 40%, transparent);
 }
 
-/* ai-tag (丁香紫通透胶囊) */
+/* ai-tag (深邃紫罗兰全色胶囊 + 纯白高对比文字 + 零浑浊泥水感) */
 .tag.ai-tag {
-  background: color-mix(in srgb, var(--state-ai-fg) 11%, transparent);
-  color: var(--state-ai-fg);
-  border-color: color-mix(in srgb, var(--state-ai-fg) 22%, transparent);
+  background: var(--tag-ai-bg);
+  color: var(--tag-ai-fg);
+  border-color: transparent;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 .tag.ai-tag:hover {
-  background: color-mix(in srgb, var(--state-ai-fg) 18%, transparent);
-  border-color: color-mix(in srgb, var(--state-ai-fg) 36%, transparent);
+  background: var(--tag-ai-bg-hover);
+  color: var(--tag-ai-fg);
   transform: translateY(-0.5px);
+  box-shadow: 0 2px 5px var(--shadow-md);
 }
 .tag.ai-tag.selected {
-  background: var(--state-ai-fg);
-  color: var(--text-on-accent);
-  border-color: var(--state-ai-fg);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--state-ai-fg) 32%, transparent);
+  background: var(--tag-ai-bg-hover);
+  color: var(--tag-ai-fg);
+  border-color: var(--tag-ai-border-selected);
+  box-shadow: 0 0 0 1.5px var(--tag-ai-bg), 0 2px 6px var(--shadow-md);
 }
 
-/* source-tag (暖琥珀通透胶囊) */
+/* source-tag (来源元信息：克制深板岩实色胶囊 + 浅白文字，层级收敛不喧宾夺主) */
 .tag.source-tag {
-  background: color-mix(in srgb, var(--state-warning-fg) 10%, transparent);
-  color: var(--state-warning-fg);
-  border-color: color-mix(in srgb, var(--state-warning-fg) 20%, transparent);
+  background: var(--tag-source-bg);
+  color: var(--tag-source-fg);
+  border-color: transparent;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 .tag.source-tag:hover {
-  background: color-mix(in srgb, var(--state-warning-fg) 17%, transparent);
-  border-color: color-mix(in srgb, var(--state-warning-fg) 34%, transparent);
+  background: var(--tag-source-bg-hover);
+  color: var(--tag-source-fg);
   transform: translateY(-0.5px);
+  box-shadow: 0 2px 5px var(--shadow-md);
 }
 .tag.source-tag.selected {
-  background: var(--state-warning-fg);
-  color: var(--text-on-accent);
-  border-color: var(--state-warning-fg);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--state-warning-fg) 32%, transparent);
+  background: var(--tag-source-bg-hover);
+  color: var(--tag-source-fg);
+  border-color: var(--tag-source-border-selected);
+  box-shadow: 0 0 0 1.5px var(--tag-source-bg), 0 2px 5px var(--shadow-md);
 }
 
-/* type-tag (冰青/天蓝通透胶囊) */
+/* type-tag (类型：沉稳深海蓝冷调胶囊 + 纯白文字) */
 .tag.type-tag {
-  background: color-mix(in srgb, var(--state-info-fg) 10%, transparent);
-  color: var(--state-info-fg);
-  border-color: color-mix(in srgb, var(--state-info-fg) 20%, transparent);
+  background: var(--tag-type-bg);
+  color: var(--tag-type-fg);
+  border-color: transparent;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 .tag.type-tag:hover {
-  background: color-mix(in srgb, var(--state-info-fg) 17%, transparent);
-  border-color: color-mix(in srgb, var(--state-info-fg) 34%, transparent);
+  background: var(--tag-type-bg-hover);
+  color: var(--tag-type-fg);
   transform: translateY(-0.5px);
+  box-shadow: 0 2px 5px var(--shadow-md);
 }
 .tag.type-tag.selected {
-  background: var(--state-info-fg);
-  color: var(--text-on-accent);
-  border-color: var(--state-info-fg);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--state-info-fg) 32%, transparent);
+  background: var(--tag-type-bg-hover);
+  color: var(--tag-type-fg);
+  border-color: var(--tag-type-border-selected);
+  box-shadow: 0 0 0 1.5px var(--tag-type-bg), 0 2px 6px var(--shadow-md);
 }
 
 /* editable */
 .tag.editable {
-  background: color-mix(in srgb, var(--accent-color) 11%, transparent);
-  color: color-mix(in srgb, var(--accent-color) 88%, var(--text-primary) 12%);
-  border-color: color-mix(in srgb, var(--accent-color) 22%, transparent);
+  background: var(--tag-user-bg);
+  color: var(--tag-user-fg);
+  border-color: transparent;
   padding-right: 8px;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 /* remove button */
 .tag-remove {
   background: none;
   border: none;
-  color: currentColor;
+  color: var(--tag-user-fg);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   padding: 0;
   margin-left: 2px;
   line-height: 1;
-  opacity: 0.6;
+  opacity: 0.75;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -500,7 +521,7 @@
 }
 
 .quick-tag-section-title.ai-title {
-  color: var(--state-ai-fg);
+  color: var(--tag-ai-title);
 }
 
 .quick-tag-chips-wrap {
@@ -534,16 +555,17 @@
 }
 
 .quick-tag-chip.active {
-  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
-  border-color: color-mix(in srgb, var(--accent-color) 25%, transparent);
-  color: color-mix(in srgb, var(--accent-color) 88%, var(--text-primary) 12%);
+  background: var(--tag-user-bg);
+  border-color: transparent;
+  color: var(--tag-user-fg);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .quick-tag-chip-remove {
   background: transparent;
   border: none;
   color: currentColor;
-  opacity: 0.6;
+  opacity: 0.75;
   cursor: pointer;
   padding: 0;
   display: inline-flex;
@@ -557,16 +579,17 @@
 }
 
 .quick-tag-chip.ai-candidate {
-  background: color-mix(in srgb, var(--state-ai-fg) 11%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--state-ai-fg) 28%, transparent);
-  color: var(--state-ai-fg);
+  background: var(--tag-ai-bg);
+  border: 1px solid transparent;
+  color: var(--tag-ai-fg);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .quick-tag-chip.ai-candidate:hover {
-  background: color-mix(in srgb, var(--state-ai-fg) 18%, transparent);
-  border-color: color-mix(in srgb, var(--state-ai-fg) 42%, transparent);
-  color: var(--state-ai-fg);
+  background: var(--tag-ai-bg-hover);
+  color: var(--tag-ai-fg);
   transform: translateY(-0.5px);
+  box-shadow: 0 2px 5px var(--shadow-md);
 }
 
 .quick-tag-chip.suggestion {
