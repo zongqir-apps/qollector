@@ -9,7 +9,7 @@
   max-height: 100%;
   overflow: hidden;
   position: relative;
-  background: var(--surface-primary);
+  background: var(--surface-elevated);
   color: var(--text-primary);
   animation: aiWorkspaceFadeIn var(--motion-base) var(--ease-emphasized);
 }
@@ -33,7 +33,7 @@
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--surface-border-soft);
-  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
   backdrop-filter: blur(12px);
   flex-shrink: 0;
   position: relative;
@@ -51,14 +51,14 @@
 .ai-workspace-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  height: 28px;
+  gap: 4px;
+  padding: 4px 9px;
+  height: 26px;
   border-radius: 9999px;
   border: 1px solid var(--surface-border-soft);
-  background: var(--surface-secondary);
+  background: var(--surface-muted);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--motion-fast) var(--ease-out);
@@ -68,34 +68,37 @@
 .ai-workspace-back-btn:hover {
   background: var(--surface-elevated);
   color: var(--text-primary);
-  border-color: var(--surface-border);
+  border-color: var(--surface-border-strong);
   transform: translateY(-0.5px);
 }
 
-.ai-workspace-title-pill {
+/* 顶部标题区：回归原生沉稳排版，彻底告别廉价蓝色假胶囊 */
+.ai-workspace-title-area {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
-  color: var(--accent-color);
-  border: 1px solid color-mix(in srgb, var(--accent-color) 24%, transparent);
-  font-size: 12px;
-  font-weight: 600;
+  gap: 6px;
+  padding: 2px 4px;
   flex-shrink: 0;
 }
 
-.ai-workspace-sparkle {
-  color: var(--accent-color);
+.ai-workspace-title-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
-/* 情境感知微标 */
+.ai-workspace-title-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* 情境感知微标：中性克制，不抢占视觉中心 */
 .ai-workspace-scenario-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 9999px;
   background: var(--surface-muted);
   color: var(--text-secondary);
@@ -107,15 +110,9 @@
 }
 
 .ai-workspace-scenario-badge.code-mode {
-  background: color-mix(in srgb, #0284c7 14%, transparent);
-  color: #0284c7;
-  border-color: color-mix(in srgb, #0284c7 28%, transparent);
-}
-
-.dark-mode .ai-workspace-scenario-badge.code-mode {
-  background: color-mix(in srgb, #38bdf8 16%, transparent);
-  color: #38bdf8;
-  border-color: color-mix(in srgb, #38bdf8 30%, transparent);
+  background: color-mix(in srgb, var(--surface-muted) 80%, var(--surface-elevated));
+  color: var(--text-secondary);
+  border-color: var(--surface-border-strong);
 }
 
 .ai-workspace-meta-tag {
@@ -157,13 +154,13 @@
 .ai-workspace-track-bar {
   display: flex;
   align-items: center;
-  height: 42px;
-  min-height: 42px;
-  max-height: 42px;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
   padding: 0 10px;
   gap: 6px;
   border-bottom: 1px solid var(--surface-border-soft);
-  background: color-mix(in srgb, var(--surface-secondary) 55%, var(--surface-primary) 45%);
+  background: color-mix(in srgb, var(--surface-muted) 60%, var(--surface-elevated));
   flex-shrink: 0;
   position: relative;
   overflow: visible;
@@ -188,17 +185,17 @@
   display: none;
 }
 
-/* 动作胶囊按钮：极简纯净，常态零铅笔图标 */
+/* 动作胶囊按钮：极简纯净，常态中性通透 */
 .ai-workspace-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 28px;
-  padding: 0 12px;
+  height: 27px;
+  padding: 0 11px;
   border-radius: 9999px;
   border: 1px solid var(--surface-border-soft);
-  background: var(--surface-primary);
-  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-muted) 85%, var(--surface-elevated));
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -209,15 +206,32 @@
 
 .ai-workspace-chip:hover {
   background: var(--surface-elevated);
-  border-color: color-mix(in srgb, var(--accent-color) 45%, var(--surface-border));
-  transform: translateY(-1px);
+  color: var(--text-primary);
+  border-color: var(--surface-border-strong);
+  transform: translateY(-0.5px);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
+/* 选中态：告别廉价塑料亮蓝，采用高级反色实体胶囊，沉稳而极具品质感 */
 .ai-workspace-chip.active {
-  background: color-mix(in srgb, var(--accent-color) 14%, var(--surface-elevated));
-  color: var(--accent-color);
-  border-color: var(--accent-color);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-color) 24%, transparent);
+  background: var(--text-primary);
+  color: var(--surface-strong);
+  border-color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.16);
+}
+
+.ai-workspace-chip.active .ai-workspace-chip-name {
+  color: var(--surface-strong);
+}
+
+.ai-workspace-chip.active .ai-workspace-chip-edit-btn {
+  color: color-mix(in srgb, var(--surface-strong) 75%, transparent);
+}
+
+.ai-workspace-chip.active .ai-workspace-chip-edit-btn:hover {
+  background: color-mix(in srgb, var(--surface-strong) 20%, transparent);
+  color: var(--surface-strong);
 }
 
 .ai-workspace-chip.running {
@@ -227,9 +241,11 @@
 @keyframes aiWorkspacePulse {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.72;
+    transform: scale(0.98);
   }
 }
 
@@ -293,7 +309,7 @@
   height: 26px;
   border-radius: 9999px;
   border: 1px solid var(--surface-border-soft);
-  background: var(--surface-primary);
+  background: var(--surface-muted);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--motion-fast) var(--ease-out);
@@ -303,7 +319,7 @@
 .ai-workspace-track-icon-btn.active {
   background: var(--surface-elevated);
   color: var(--text-primary);
-  border-color: var(--surface-border);
+  border-color: var(--surface-border-strong);
   transform: translateY(-0.5px);
 }
 
@@ -319,7 +335,7 @@
   right: 0;
   min-width: 165px;
   background: var(--surface-elevated);
-  border: 1px solid var(--surface-border);
+  border: 1px solid var(--surface-border-soft);
   border-radius: var(--radius-md, 10px);
   box-shadow: 0 8px 24px var(--shadow-lg, rgba(0, 0, 0, 0.28));
   padding: 5px;
@@ -368,7 +384,7 @@
 /* 原文可折叠条 */
 .ai-workspace-source-collapse {
   border-bottom: 1px solid var(--surface-border-soft);
-  background: color-mix(in srgb, var(--surface-secondary) 30%, transparent);
+  background: color-mix(in srgb, var(--surface-muted) 40%, transparent);
   flex-shrink: 0;
   position: relative;
   z-index: 5;
@@ -406,7 +422,7 @@
   max-height: 120px;
   overflow-y: auto;
   border-top: 1px dashed var(--surface-border-soft);
-  background: var(--surface-primary);
+  background: var(--surface-elevated);
 }
 
 .ai-workspace-source-content pre {
@@ -455,7 +471,7 @@
 
 .ai-workspace-status.error {
   border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
-  background: color-mix(in srgb, #ef4444 6%, var(--surface-primary));
+  background: color-mix(in srgb, #ef4444 8%, var(--surface-elevated));
   color: var(--text-primary);
 }
 
@@ -472,8 +488,8 @@
   gap: 6px;
   padding: 5px 14px;
   border-radius: 9999px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-secondary);
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-muted);
   color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
@@ -482,9 +498,10 @@
 
 .ai-workspace-retry-btn:hover {
   background: var(--surface-elevated);
+  border-color: var(--surface-border-strong);
 }
 
-/* 空状态 */
+/* 空状态：中性典雅，告别突兀大蓝圈 */
 .ai-workspace-empty {
   display: flex;
   flex-direction: column;
@@ -493,28 +510,28 @@
   text-align: center;
   gap: 8px;
   margin: auto;
-  max-width: 290px;
+  max-width: 280px;
   color: var(--text-tertiary);
   padding: 24px 0;
 }
 
 .ai-workspace-empty-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 25px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
-  color: var(--accent-color);
-  border: 1px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-border-soft);
   margin-bottom: 4px;
 }
 
 .ai-workspace-empty-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .ai-workspace-empty-sub {
@@ -538,7 +555,6 @@
   white-space: pre-wrap;
   word-break: break-word;
   user-select: text;
-  background: var(--surface-primary);
   border-radius: var(--radius-sm, 6px);
   padding: 4px 0;
 }
@@ -605,13 +621,13 @@
 
 .ai-workspace-btn.secondary {
   border: 1px solid var(--surface-border-soft);
-  background: var(--surface-secondary);
+  background: var(--surface-muted);
   color: var(--text-primary);
 }
 
 .ai-workspace-btn.secondary:hover:not(:disabled) {
   background: var(--surface-elevated);
-  border-color: var(--surface-border);
+  border-color: var(--surface-border-strong);
 }
 
 .ai-workspace-btn.primary {
@@ -634,7 +650,7 @@
 }
 
 .ai-workspace-btn.success {
-  background: color-mix(in srgb, #10b981 16%, var(--surface-secondary));
+  background: color-mix(in srgb, #10b981 16%, var(--surface-muted));
   color: #10b981;
   border-color: #10b981;
 }
@@ -657,7 +673,7 @@
   width: 100%;
   max-width: 440px;
   background: var(--surface-elevated);
-  border: 1px solid var(--surface-border);
+  border: 1px solid var(--surface-border-soft);
   border-radius: var(--radius-lg, 14px);
   box-shadow: 0 16px 36px var(--shadow-lg, rgba(0, 0, 0, 0.35));
   display: flex;
@@ -722,7 +738,7 @@
   padding: 0 10px;
   border-radius: var(--radius-sm, 6px);
   border: 1px solid var(--surface-border-soft);
-  background: var(--surface-primary);
+  background: var(--surface-elevated);
   color: var(--text-primary);
   font-size: 12px;
   outline: none;
@@ -738,7 +754,7 @@
   padding: 8px 10px;
   border-radius: var(--radius-sm, 6px);
   border: 1px solid var(--surface-border-soft);
-  background: var(--surface-primary);
+  background: var(--surface-elevated);
   color: var(--text-primary);
   font-size: 12px;
   line-height: 1.5;
@@ -765,7 +781,7 @@
   justify-content: space-between;
   padding: 10px 16px;
   border-top: 1px solid var(--surface-border-soft);
-  background: var(--surface-secondary);
+  background: var(--surface-muted);
 }
 
 .ai-workspace-modal-footer-left {

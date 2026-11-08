@@ -21,6 +21,7 @@ import {
   RefreshCw,
   CopyPlus,
   Layers,
+  Bot,
 } from 'lucide-react';
 import {
   getAiActions,
@@ -52,11 +53,11 @@ function AIAssistantWorkspace({
   );
   const [scenarioMode, setScenarioMode] = useState(detectedInitialMode);
 
-  // 动作列表与激活项
+  // 动作列表与激活项（初始不默认选中高亮任何动作，保持纯净常态）
   const [actions, setActions] = useState(() =>
     getAiActions({ mode: detectedInitialMode, sourceText, sourceType })
   );
-  const [activeActionId, setActiveActionId] = useState(() => actions[0]?.id || null);
+  const [activeActionId, setActiveActionId] = useState(null);
 
   // 执行状态与结果
   const [resultText, setResultText] = useState('');
@@ -93,7 +94,7 @@ function AIAssistantWorkspace({
     setScenarioMode(nextMode);
     const list = getAiActions({ mode: nextMode, sourceText, sourceType });
     setActions(list);
-    setActiveActionId(list[0]?.id || null);
+    setActiveActionId(null);
     setResultText('');
     setErrorText('');
   }, [item?.id, sourceText, sourceType]);
@@ -376,8 +377,8 @@ function AIAssistantWorkspace({
             <ArrowLeft size={15} />
             <span className="ai-workspace-back-label">{t('aiAssistant.back')}</span>
           </button>
-          <div className="ai-workspace-title-pill">
-            <Sparkles size={13} className="ai-workspace-sparkle" />
+          <div className="ai-workspace-title-area">
+            <Bot size={14} className="ai-workspace-title-icon" />
             <span className="ai-workspace-title-text">{t('aiAssistant.title')}</span>
           </div>
 
@@ -571,7 +572,7 @@ function AIAssistantWorkspace({
         {!running && !errorText && !resultText && (
           <div className="ai-workspace-empty">
             <div className="ai-workspace-empty-icon">
-              <Wand2 size={26} />
+              <Bot size={22} />
             </div>
             <div className="ai-workspace-empty-title">{t('aiAssistant.emptyHintTitle')}</div>
             <div className="ai-workspace-empty-sub">{t('aiAssistant.emptyHintSubtitle')}</div>

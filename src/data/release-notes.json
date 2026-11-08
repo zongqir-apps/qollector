@@ -2,6 +2,31 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.5",
+      "publishedAt": "2026-11-08",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-5",
+      "summary": {
+        "zh-CN": "彻底剥离 AI 助理顶栏伪药丸标签与刺眼塑料亮蓝，动作胶囊全面升级为高级 Solid Contrast 反色实体体系，统一 Bot 视觉符号并修复幽灵变量透明度缺陷。",
+        "en-US": "Overhauled AI Assistant Workspace with native header typography, solid contrast pill active states, unified Bot branding, and eliminated phantom CSS variables causing background transparency bleed."
+      },
+      "highlights": {
+        "zh-CN": [
+          "顶栏去标签化与符号统一：彻底拔除顶栏“AI 助手”蓝色假药丸外壳，恢复原生 Typography 标题排版；统一对齐外部入口的 Bot 矢量微标，终结图标割裂与心形碎星违和感。",
+          "动作胶囊 Solid Contrast 质感升级：取缔“核心要点 / 整理润色”等动作被选中时浑浊刺眼的塑料亮蓝底与发光外阴影，全面升级为黑白/反色实体胶囊体系，点击反馈沉稳干脆，极具科技高级感。",
+          "初态纯净无假激活：面板打开时动作列表保持干净素雅的中性常态，杜绝首项在未执行前强行染蓝假高亮的视觉困扰。",
+          "空状态中性微光底座：移除界面正中突兀的 50px 浅蓝大圈，升级为柔和通透的中性微边框底座与清晰辅助排版。",
+          "根除幽灵 CSS 变量：全面替换未声明的 --surface-primary 等变量为系统标准令牌，恢复根容器实底支撑，彻底解决底色泛白穿透与字体发虚。"
+        ],
+        "en-US": [
+          "Native Header Typography & Unified Bot Branding: Stripped out the tacky blue pill shell from the header title, restoring crisp desktop-grade typography paired with a cohesive Bot icon aligned with the preview panel entrance.",
+          "Solid Contrast Pill Active States: Replaced cheap plastic neon blue fills and glowing shadows on active chips (like Core Points & Polish) with sleek, high-contrast solid monochrome capsules for a professional, distraction-free aesthetic.",
+          "Clean Initial State Without False Highlights: All action chips remain in a quiet, neutral state upon launch, ending the jarring behavior of auto-highlighting the first item in bright blue before execution.",
+          "Subtle Neutral Empty State: Replaced the garish 50px blue ring with a soft, frosted neutral pedestal and harmonious secondary typography.",
+          "Eliminated Phantom CSS Variables: Replaced undeclared --surface-primary variables with compliant design tokens, ensuring solid opaque background protection and eliminating blurry translucent text rendering."
+        ]
+      }
+    },
+    {
       "version": "0.7.4",
       "publishedAt": "2026-11-08",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-4",
