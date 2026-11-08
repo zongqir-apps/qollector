@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.4",
+      "publishedAt": "2026-11-08",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-4",
+      "summary": {
+        "zh-CN": "取缔死板水泥灰与前置装饰符号，标签全面升级为微晶通透胶囊体系，回归 Typography 纯文本排版，视觉焦点严格收敛于用户自定义主题强调色。",
+        "en-US": "Replaced flat slate gray and decorative icons with frosted crystal translucent capsules, restoring typography-first purity while strictly preserving the user's custom accent color."
+      },
+      "highlights": {
+        "zh-CN": [
+          "彻底拔除多余前置符号：全量剔除卡片标签与预览面板摘要内部的 Sparkles 矢量小图标，杜绝密集碎小图标切碎阅读视线，回归 Typography-first 纯净文本排版。",
+          "微晶通透胶囊质感（Frosted Crystal）：以极淡半透明薄雾（深色 5.5%、浅色 4%）与晶体微光边框替代死板不透明水泥灰，配合毛玻璃模糊与 19px 极纤圆角，彻底消除灰块的禁用态压抑感。",
+          "唯一视觉焦点法则：标签、类型与来源元数据自然退入背景，全界面唯一高光主角严格锁定为用户自定义的主题强调色（红/蓝等），选中态与核心操作同频联动。",
+          "全局元信息胶囊风格对齐：预览面板 AI 摘要与标签筛选下拉菜单徽标全量同步微晶设计令牌，整体视觉轻盈通透、呼吸感一致。"
+        ],
+        "en-US": [
+          "Eliminated Decorative Icons: stripped out all Sparkles vector icons inside item tags and preview summaries, ending visual clutter that disrupted the reading flow and restoring clean typography-first text.",
+          "Frosted Crystal Translucent Capsules: replaced opaque flat slate gray with airy translucent mist (5.5% in dark, 4% in light) and subtle crystalline borders, utilizing background blur and ultra-slim 19px pill geometry to erase disabled-like heaviness.",
+          "Strict Single Hero Accent Rule: all metadata badges recede gracefully into the backdrop, leaving the spotlight strictly on the user's custom accent color (red, blue, etc.) for selected tags and primary actions.",
+          "Unified Global Capsule Styling: preview panel AI summaries and tag filter dropdown badges are fully aligned with the frosted crystal design tokens for cohesive, breathable desktop aesthetics."
+        ]
+      }
+    },
+    {
       "version": "0.7.3",
       "publishedAt": "2026-11-08",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-3",
