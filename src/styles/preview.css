@@ -633,19 +633,26 @@
 }
 
 
-/* ========== Scheme C Overrides (moved from workspace.css) ========== */
-.preview-panel {
-  padding: 8px;
-  gap: 8px;
+/* ========== 现代化一体化画卷重塑 (Unified Preview Canvas) ========== */
+.preview-panel,
+.density-compact .preview-panel,
+.density-cozy .preview-panel {
+  padding: 0;
+  gap: 0;
+  background: var(--control-panel-bg);
 }
 
-.preview-nav {
-  min-height: 46px;
-  padding: 7px 10px;
-  border: 1px solid var(--control-panel-border);
-  border-radius: 12px;
-  background: var(--control-panel-bg);
-  box-shadow: var(--control-panel-shadow);
+.preview-nav,
+.density-compact .preview-nav,
+.density-cozy .preview-nav {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--control-panel-bg) 95%, var(--surface-elevated) 5%);
+  box-shadow: none;
+  flex-shrink: 0;
 }
 
 .preview-nav-main {
@@ -696,9 +703,9 @@
 }
 
 .preview-back-btn {
-  width: 31px;
-  height: 31px;
-  border-radius: 9px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
 }
 
 .preview-nav-actions {
@@ -706,36 +713,56 @@
 }
 
 .preview-action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
 }
 
 .preview-action-btn:hover {
   transform: translateY(-1px);
   border-color: var(--control-button-hover-border);
-  box-shadow: 0 5px 14px color-mix(in srgb, var(--shadow-sm) 60%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow-sm) 50%, transparent);
 }
 
+/* 标签区：融入正文流顶部，取消独立浮动卡片与描边 */
 .preview-tags-section,
-.preview-note-section,
-.preview-meta,
-.preview-toolbar {
-  border: 1px solid var(--control-panel-border);
-  border-radius: 12px;
-  background: var(--control-panel-bg);
+.density-compact .preview-tags-section,
+.density-cozy .preview-tags-section {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-light) 65%, transparent);
+  border-radius: 0;
+  background: transparent;
 }
 
-.preview-tags-section {
-  padding: 7px 12px;
+/* 正文流与滚动区：无界自然排版 */
+.preview-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  position: relative;
+  scroll-behavior: smooth;
 }
 
-.preview-content-area {
-  border: 1px solid var(--control-panel-border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--control-panel-bg) 78%, var(--surface-elevated) 22%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-glow) 36%, transparent);
-  padding: 16px 18px;
+.preview-content-area,
+.density-compact .preview-content-area,
+.density-cozy .preview-content-area {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 16px 20px 8px;
+}
+
+.preview-content-area:not(.editing):focus-within {
+  box-shadow: none;
+  border-color: transparent;
 }
 
 .preview-panel.type-image .preview-content-area {
@@ -792,16 +819,24 @@
 }
 
 .preview-note-section {
-  padding: 6px 12px;
-  min-height: 36px;
+  padding: 8px 12px;
+  margin: 0 20px 8px;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-light) 75%, transparent);
   transition: min-height var(--motion-base) var(--ease-standard), padding var(--motion-base) var(--ease-standard);
 }
 
 .preview-note-section:not(.has-note):not(.is-editing) {
-  align-items: flex-end;
+  align-items: flex-start;
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  margin: 0 20px 4px;
 }
 
 .preview-note-section.has-note {
@@ -810,10 +845,11 @@
 
 .preview-note-section.is-editing {
   align-items: stretch;
-  min-height: calc(100% - 8px);
+  min-height: calc(100% - 16px);
   padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
+  margin: 0 16px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-color);
   background: var(--control-panel-bg);
   box-shadow: 0 4px 18px color-mix(in srgb, var(--shadow-sm) 80%, transparent);
 }
@@ -913,17 +949,35 @@
   }
 }
 
-.preview-meta {
-  padding: 8px 12px;
-  gap: 10px;
+/* 元信息：作为文档底部的自然注脚 */
+.preview-meta,
+.density-compact .preview-meta,
+.density-cozy .preview-meta {
+  margin: auto 20px 8px;
+  padding: 8px 0 4px;
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--border-light) 50%, transparent);
+  border-radius: 0;
+  background: transparent;
+  gap: 12px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
 }
 
-.preview-toolbar {
-  border-top: 1px solid var(--control-panel-border);
-  padding: 8px 10px;
+/* 底部动作工具栏：贴底贯通 Dock 栏 */
+.preview-toolbar,
+.density-compact .preview-toolbar,
+.density-cozy .preview-toolbar {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 7px 14px;
+  border: none;
+  border-top: 1px solid var(--border-light);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--control-panel-bg) 95%, var(--surface-elevated) 5%);
   gap: 6px;
+  box-shadow: none;
 }
 
 .preview-toolbar-hint {
@@ -1012,8 +1066,36 @@
 }
 
 @container (max-width: 560px) {
+  .preview-nav {
+    padding: 6px 10px;
+    min-height: 40px;
+  }
+
+  .preview-tags-section {
+    padding: 4px 10px;
+  }
+
   .preview-content-area {
-    padding: 12px;
+    padding: 12px 14px 6px;
+  }
+
+  .preview-note-section {
+    margin: 0 12px 6px;
+  }
+
+  .preview-note-section:not(.has-note):not(.is-editing) {
+    margin: 0 12px 2px;
+  }
+
+  .preview-meta {
+    margin: auto 12px 6px;
+    padding: 6px 0 2px;
+    font-size: 10px;
+  }
+
+  .preview-toolbar {
+    padding: 6px 10px;
+    min-height: 40px;
   }
 
   .preview-panel.type-image .preview-content-area {

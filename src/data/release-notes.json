@@ -2,6 +2,31 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.0",
+      "publishedAt": "2026-11-08",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-0",
+      "summary": {
+        "zh-CN": "预览画卷体验重磅革新：全面告别多重卡片嵌套与沉重边框线条，上线顶底贯通一体化画卷；集成 9 大开发者高频文本转换规则与 YAML 生态支持，彻底修复终端 ~200 幽灵控制符与 Markdown 标题误判。",
+        "en-US": "Major preview experience overhaul: eliminated nested card boxes in favor of a clean, unified canvas; added 9 developer text transform rules and YAML support, and fixed terminal ~200 ghost codes."
+      },
+      "highlights": {
+        "zh-CN": [
+          "预览面板一体化画卷重塑（Unified Preview Canvas）：彻底剥离导航、标签、正文、备注与底部操作之间累赘的多重圆角卡片边框与内阴影，采用顶底贯通式停靠（Docked Header & Toolbar）与无界排版文档流，Mini 模式（320x450）下垂直净可视空间增加近 100px。",
+          "开发者高频文本转换中心全新上线：新增纯文本去转义（Unescape 还原多层转义 JSON）、SQL 关键字格式化美化、IDE复制代码单调行号剥离、URL Query参数转结构化JSON、离线安全 Base64 解码、离线 JWT 载荷分析与过期时间换算、TSV（Excel/网页复制表格）转 Markdown 表格、PDF/终端硬换行合并愈合、松散 JS 对象字面量转标准合法 JSON。",
+          "全面深度支持 YAML 生态：前端代码高亮自动识别 YAML 语法，后端智能探测并在剪贴板直接打标 yaml 类型，支持 YAML 与格式化 JSON 双向转换与 YAML 排版美化。",
+          "终端括号粘贴模式幽灵控制符清洗：精准识别并剥离跨终端/SSH/tmux复制时残留的 ~200、[200~、\\x1b[200~ 幽灵控制字符；重构命令清洗正则引擎，杜绝将 Markdown 一级标题误判为 Shell 终端命令。",
+          "所有新增文本转换能力均采用纯函数实现，随用随析，绝对零常驻后台内存开销。"
+        ],
+        "en-US": [
+          "Unified Preview Canvas: eliminated cluttered nested borders and floating card boxes for nav, tags, content, and toolbar; adopted clean docked headers and footers with a borderless reading flow, reclaiming nearly 100px vertical space in mini mode (320x450).",
+          "Developer Text Transform Suite: introduced multi-layer unescape, SQL beautifier, code line numbers stripping, URL query to JSON, safe offline Base64 & JWT payload decoding with local expiry calculation, TSV to Markdown table, PDF hard line-break healing, and JS object literal to valid JSON conversion.",
+          "Full YAML Ecosystem Support: automatic syntax highlighting and backend type detection for YAML content, with bidirectional YAML <-> JSON conversion and YAML formatting.",
+          "Bracketed Paste Mode Cleaner & Terminal Prompt Guard: accurately identifies and strips orphan ~200 and \\x1b[200~ control sequences from terminal copies, and overhauled command regex to prevent misidentifying Markdown headings as Shell prompts.",
+          "Zero Persistent Memory Footprint: all transforms operate strictly as stateless pure functions with zero background overhead."
+        ]
+      }
+    },
+    {
       "version": "0.6.26",
       "publishedAt": "2026-11-04",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-6-26",
