@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X, Tag, Sparkles } from 'lucide-react';
+import { Check, X, Tag } from 'lucide-react';
 import {
   getTags,
   getSourceApp,
@@ -105,7 +105,6 @@ function ItemTags({
         onClick={(e) => onTagClick(tag, e)}
         title={t('item.clickToFilterAI')}
       >
-        <Sparkles size={10} className="tag-ai-icon" />
         <span>{displayTag}</span>
       </span>,
     );

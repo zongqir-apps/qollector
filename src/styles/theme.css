@@ -176,21 +176,21 @@
   --state-warning-fg-strong: #c07d00;
   --state-info-fg-strong: #0f8098;
 
-  /* Refined Neutral Capsule Tag Tokens (Light) */
-  --tag-default-bg: var(--bg-hover);
-  --tag-default-border: var(--border-color);
-  --tag-default-fg: var(--text-secondary);
-  --tag-default-bg-hover: var(--bg-card-hover);
-  --tag-default-border-hover: var(--border-btn);
-  --tag-default-fg-hover: var(--text-primary);
+  /* Frosted Crystal Tag Tokens (Light) */
+  --tag-default-bg: rgba(0, 0, 0, 0.04);
+  --tag-default-border: rgba(0, 0, 0, 0.07);
+  --tag-default-fg: #4b5563;
+  --tag-default-bg-hover: rgba(0, 0, 0, 0.08);
+  --tag-default-border-hover: rgba(0, 0, 0, 0.14);
+  --tag-default-fg-hover: #111827;
 
-  --tag-user-bg: color-mix(in srgb, var(--accent-color) 10%, var(--bg-hover));
-  --tag-user-border: color-mix(in srgb, var(--accent-color) 25%, var(--border-color));
-  --tag-user-fg: color-mix(in srgb, var(--accent-color) 75%, var(--text-primary) 25%);
+  --tag-user-bg: color-mix(in srgb, var(--accent-color) 8%, rgba(0, 0, 0, 0.03));
+  --tag-user-border: color-mix(in srgb, var(--accent-color) 22%, rgba(0, 0, 0, 0.06));
+  --tag-user-fg: color-mix(in srgb, var(--accent-color) 70%, #111827 30%);
 
   --tag-selected-bg: var(--accent-color);
   --tag-selected-border: var(--accent-color);
-  --tag-selected-fg: var(--text-on-accent);
+  --tag-selected-fg: #ffffff;
 
   /* Accent interaction tokens */
   --accent-border-soft: color-mix(in srgb, var(--accent-color) 30%, transparent);
@@ -1365,21 +1365,21 @@
   --state-warning-fg-strong: #ffb340;
   --state-info-fg-strong: #9de8f8;
 
-  /* Refined Neutral Capsule Tag Tokens (Dark) */
-  --tag-default-bg: var(--bg-hover);
-  --tag-default-border: var(--border-color);
-  --tag-default-fg: var(--text-secondary);
-  --tag-default-bg-hover: var(--bg-card-hover);
-  --tag-default-border-hover: var(--border-btn);
-  --tag-default-fg-hover: var(--text-primary);
+  /* Frosted Crystal Tag Tokens (Dark) */
+  --tag-default-bg: rgba(255, 255, 255, 0.055);
+  --tag-default-border: rgba(255, 255, 255, 0.08);
+  --tag-default-fg: rgba(255, 255, 255, 0.82);
+  --tag-default-bg-hover: rgba(255, 255, 255, 0.1);
+  --tag-default-border-hover: rgba(255, 255, 255, 0.16);
+  --tag-default-fg-hover: #ffffff;
 
-  --tag-user-bg: color-mix(in srgb, var(--accent-color) 12%, var(--bg-hover));
-  --tag-user-border: color-mix(in srgb, var(--accent-color) 28%, var(--border-color));
-  --tag-user-fg: color-mix(in srgb, var(--accent-color) 80%, var(--text-primary) 20%);
+  --tag-user-bg: color-mix(in srgb, var(--accent-color) 12%, rgba(255, 255, 255, 0.05));
+  --tag-user-border: color-mix(in srgb, var(--accent-color) 25%, rgba(255, 255, 255, 0.08));
+  --tag-user-fg: color-mix(in srgb, var(--accent-color) 75%, rgba(255, 255, 255, 0.9) 25%);
 
   --tag-selected-bg: var(--accent-color);
   --tag-selected-border: var(--accent-color);
-  --tag-selected-fg: var(--text-on-accent);
+  --tag-selected-fg: #ffffff;
 
   /* Scheme C surface tokens */
   --surface-elevated: rgba(var(--bg-secondary-rgb), calc(var(--glass-opacity) * 0.98));

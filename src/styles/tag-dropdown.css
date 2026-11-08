@@ -210,9 +210,9 @@
   align-items: center;
   justify-content: center;
   padding: 1px 6px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
+  background: var(--tag-default-bg);
+  border: 1px solid var(--tag-default-border);
+  color: var(--tag-default-fg);
   border-radius: 9999px;
   font-size: 9px;
   font-weight: 600;
