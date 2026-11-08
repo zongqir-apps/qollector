@@ -2,6 +2,31 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.2",
+      "publishedAt": "2026-11-08",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-2",
+      "summary": {
+        "zh-CN": "全色系高级胶囊标签全新上线，彻底告别发灰浑浊与视觉发虚；剔除预览面板奇葩 Emoji 灯泡并升级为精致矢量微标；全面夯实 AI 助手防误触穿透、下拉截断与主题色自热。",
+        "en-US": "Introduced modern solid capsule tag design with high-contrast typography, eliminated muddy translucent tints and orphan emoji lightbulbs in preview meta, and hardened AI assistant against accidental dismissal and dropdown clipping."
+      },
+      "highlights": {
+        "zh-CN": [
+          "全色系高级胶囊标签体系（Solid Capsule Tags）：彻底废除暗色背景下浅紫发脏发虚的半透泥水质感，重构为深邃紫罗兰实色胶囊（#6d28d9 / #7c3aed）配 100% 纯白高对比文字与 Sparkles 矢量微标；用户标签随主题强调色实色呈现，来源标签收敛为克制深板岩灰，构建清晰严谨的视觉层级。",
+          "预览面板 AI 摘要质感升级：剔除原先硬编码的操作系统原生 💡 黄灯泡，升级为精致矢量微标与流线型紫罗兰药丸胶囊，在 mini 模式下自适应文本截断，整体更加细腻协调。",
+          "AI 助手防误触穿透与表单保护：在工作区与 Prompt 编辑弹窗增加根层事件隔离与未保存脏数据二次确认，彻底解决编辑提示词点偏导致整个工作区缩退消失的问题。",
+          "交互与布局细节打磨：修复“管理动作”下拉菜单被容器截断的显示缺陷；预设动作用语全面优化为更通俗的人话（核心要点、整理润色、大白话解释）；底部操作按钮全量升级为药丸胶囊风格，铅笔编辑图标支持 Hover 显隐与右键一键呼出。",
+          "主题色冷启动防闪烁：引入强调色本地持久化自热缓存，彻底消除非默认主题色在应用初次渲染时红变蓝的短暂闪烁。"
+        ],
+        "en-US": [
+          "Solid Capsule Tag Overhaul: replaced muddy, washed-out lavender translucent badges with solid violet capsules (#6d28d9 / #7c3aed) paired with pure white high-contrast text and a crisp Sparkles vector icon; user tags now use solid accent color, and source tags adopt restrained slate gray for an uncluttered visual hierarchy.",
+          "Refined Preview AI Summary Capsule: replaced the orphan system 💡 emoji with a unified Lucide Sparkles vector icon and streamlined pill capsule, supporting graceful single-line ellipsis in mini window mode.",
+          "AI Assistant Accidental Dismissal Guard: isolated root click events and added unsaved-changes protection to prevent the entire AI workspace from abruptly folding when clicking outside active prompt inputs.",
+          "Polished Actions & Dropdown Navigation: fixed action management dropdown clipping caused by container overflow, adopted natural preset naming, and upgraded workspace action buttons to modern rounded pills with hover-reveal edit triggers and right-click shortcuts.",
+          "Instant Accent Color Hydration: added local storage cache pre-warming to eliminate flash-of-default-blue on startup when using custom accent colors (e.g. red)."
+        ]
+      }
+    },
+    {
       "version": "0.7.1",
       "publishedAt": "2026-11-08",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-1",
