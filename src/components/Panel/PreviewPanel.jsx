@@ -24,7 +24,7 @@ import { getTags, getSourceApp } from '../../utils/tagHelpers';
 import { getUserTags as getUserTagsSvc } from '../../services/clipboardService';
 import { getTranslationFromMetadata } from '../../utils/translationHelpers';
 import { getAiRetrievalFromMetadata } from '../../utils/filenameNaming';
-import AIAssistantPanel from '../../features/ai-assistant/components/AIAssistantPanel';
+import AIAssistantWorkspace from '../../features/ai-assistant/components/AIAssistantWorkspace';
 import ItemTags from '../ItemCard/ItemTags';
 import NoteDisplay from '../ItemCard/NoteDisplay';
 import FilePreviewItem from './FilePreview';
@@ -1078,9 +1078,33 @@ function PreviewPanel() {
   }, [item?.id]);
 
   return (
-    <div className={`preview-panel ${previewTypeClass}`} ref={panelRef}>
+    <div className={`preview-panel ${previewTypeClass} ${showAIAssistant ? 'ai-workspace-active' : ''}`} ref={panelRef}>
       {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
-      <div className="preview-nav">
+      {showAIAssistant ? (
+        <AIAssistantWorkspace
+          item={item}
+          sourceText={assistantSourceText}
+          sourceType={item.type_}
+          onClose={() => setShowAIAssistant(false)}
+          onItemUpdated={(updatedItem) => {
+            useAppStore.setState((state) => {
+              const nextItems = state.items.map((candidate) => (
+                candidate.id === updatedItem.id ? { ...candidate, ...updatedItem } : candidate
+              ));
+              return {
+                items: nextItems,
+                ...buildItemDerivations(nextItems),
+                previewItem: state.previewItem?.id === updatedItem.id
+                  ? { ...state.previewItem, ...updatedItem }
+                  : state.previewItem,
+              };
+            });
+          }}
+          onFeedback={showPreviewToast}
+        />
+      ) : (
+        <>
+          <div className="preview-nav">
         <div className="preview-nav-main">
           <button
             type="button"
@@ -1175,13 +1199,7 @@ function PreviewPanel() {
               {previewToast}
             </div>
           )}
-          <AIAssistantPanel
-            open={showAIAssistant}
-            sourceText={assistantSourceText}
-            sourceType={item.type_}
-            onClose={() => setShowAIAssistant(false)}
-          />
-          {!showAIAssistant && !isEditingContent && pureColorPreview && (
+          {!isEditingContent && pureColorPreview && (
             <div className="preview-color-card">
               <div
                 className="preview-color-card-swatch"
@@ -1497,6 +1515,8 @@ function PreviewPanel() {
             </>
           )}
         </div>
+        </>
+      )}
     </div>
   );
 }

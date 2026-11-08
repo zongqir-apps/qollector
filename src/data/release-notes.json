@@ -2,6 +2,31 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.1",
+      "publishedAt": "2026-11-08",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-1",
+      "summary": {
+        "zh-CN": "AI 助手重构革新：彻底告别深层夹缝与固定死板的通用写作模板，上线全屏覆盖式智能工作台；动作显示名称与提示词全面解耦，支持自由增删与实时编辑，单行防膨胀滑动轨道完美适配迷你模式。",
+        "en-US": "Overhauled AI Assistant: replaced cramped nested drawer with a dedicated full-bleed workspace; decoupled action names and prompts with full customization and editing, and introduced single-row scrollable pill track tailored for mini mode."
+      },
+      "highlights": {
+        "zh-CN": [
+          "全屏覆盖式智能工作台（Full-Bleed Workspace）：点击 AI 助手时彻底覆盖右侧预览面板（替换原导航、标签栏与操作栏），高度 100% 垂直释放，告别上下夹击的压抑感，专注智能处理与结果呈现。",
+          "动作契约全面解耦与自定义（Custom Actions & Prompts）：彻底抛弃语气、长度等繁琐配置表单，将动作解耦为『显示名称 + 提示词』；用户可对任意按钮就地查看和修改 Prompt，支持新建专属自定义动作或恢复预设。",
+          "回归剪贴板真实高频场景：淘汰通用写作套话模板，默认收敛为 3 大高频刚需预设——『白话省流』（1~3句通俗白话直击结论）、『理清清单』（剔除废话整理 Markdown 待办要点）、『去水规整』（消除口语重复、语气词与断句错字）。",
+          "单行横滑轨道防膨胀设计：操作轨道物理高度严格锁定在 42px，采用单行平滑横向滚动，彻底阻断按钮增多带来的纵向挤压，在 Mini 模式（320x450）下依然保持大面积结果画布展示。",
+          "闭环落地操作：提供一键复制结果、就地替换当前卡片（同步持久化 SQLite 与全局 Store）以及另存为新剪贴板项三大快速出口。"
+        ],
+        "en-US": [
+          "Full-Bleed Dedicated Workspace: clicking AI Assistant now overlays the entire preview panel, hiding redundant headers and tag bars to maximize vertical canvas space for seamless output.",
+          "Decoupled Action Names & Prompts: removed tedious tone and length form controls; actions are now decoupled into custom display names and prompts, allowing users to inspect, edit, add, or delete prompts inline.",
+          "Clipboard-Native Default Presets: replaced generic drafting templates with 3 high-leverage presets: TL;DR (1-3 plain sentences delivering core conclusions), Action List (clean Markdown bullet points without filler), and Clean Text (removes spoken filler words, repairs broken line breaks, and polishes prose).",
+          "Anti-Expansion Single-Row Pill Track: track height is strictly locked at 42px with horizontal scrolling, preventing button proliferation from wrapping and eating up screen estate in Mini mode (320x450).",
+          "Complete Result Actions: instant one-click copy, replace original card in-place (updating SQLite and UI state), or save as a new clipboard record."
+        ]
+      }
+    },
+    {
       "version": "0.7.0",
       "publishedAt": "2026-11-08",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-0",

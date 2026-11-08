@@ -747,6 +747,7 @@ fn main() {
             get_history_group_counts,
             generate_timeline_summary,
             run_prompt_assistant_task,
+            run_custom_ai_action,
             get_mcp_config,
             get_mcp_port,
             update_mcp_config,

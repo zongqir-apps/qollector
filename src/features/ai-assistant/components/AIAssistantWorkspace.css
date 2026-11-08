@@ -1,0 +1,787 @@
+/* AIAssistantWorkspace.css - 全屏覆盖式智能处理工作台 */
+
+.ai-workspace-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  position: relative;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  animation: aiWorkspaceFadeIn var(--motion-base) var(--ease-emphasized);
+}
+
+@keyframes aiWorkspaceFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 顶部专属导航条 */
+.ai-workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--surface-border-soft);
+  background: color-mix(in srgb, var(--surface-elevated) 85%, transparent);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+}
+
+.ai-workspace-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-workspace-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.ai-workspace-back-btn:hover {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border-color: var(--surface-border);
+}
+
+.ai-workspace-title-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-light) 60%, transparent);
+  color: var(--accent-color);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ai-workspace-sparkle {
+  color: var(--accent-color);
+}
+
+.ai-workspace-meta-tag {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-workspace-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ai-workspace-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-close-btn:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  border-color: var(--surface-border-soft);
+}
+
+/* 单行固定操作轨道（锁定 42px，严禁折行） */
+.ai-workspace-track-bar {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  padding: 0 10px;
+  gap: 6px;
+  border-bottom: 1px solid var(--surface-border-soft);
+  background: color-mix(in srgb, var(--surface-secondary) 50%, var(--surface-primary) 50%);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.ai-workspace-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 2px 0;
+}
+
+.ai-workspace-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* 动作胶囊按钮 */
+.ai-workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-chip:hover {
+  background: var(--surface-elevated);
+  border-color: var(--accent-light);
+  transform: translateY(-1px);
+}
+
+.ai-workspace-chip.active {
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--surface-elevated));
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent-color) 20%, transparent);
+}
+
+.ai-workspace-chip.running {
+  animation: aiWorkspacePulse 1.2s infinite ease-in-out;
+}
+
+@keyframes aiWorkspacePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.ai-workspace-chip-name {
+  line-height: 1;
+}
+
+.ai-workspace-chip-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 0;
+  margin-right: -3px;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-chip:hover .ai-workspace-chip-edit-btn,
+.ai-workspace-chip.active .ai-workspace-chip-edit-btn {
+  opacity: 1;
+  color: var(--text-secondary);
+}
+
+.ai-workspace-chip-edit-btn:hover {
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  color: var(--text-primary);
+}
+
+/* 轨道控制按钮（新建与更多） */
+.ai-workspace-track-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-left: 4px;
+  border-left: 1px solid var(--surface-border-soft);
+}
+
+.ai-workspace-track-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-track-icon-btn:hover,
+.ai-workspace-track-icon-btn.active {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border-color: var(--surface-border);
+}
+
+.ai-workspace-more-wrap {
+  position: relative;
+}
+
+/* 更多下拉 */
+.ai-workspace-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 16px var(--shadow-md);
+  padding: 4px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-workspace-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-dropdown-item:hover {
+  background: var(--surface-muted);
+}
+
+.ai-workspace-dropdown-item.danger {
+  color: var(--text-secondary);
+}
+
+.ai-workspace-dropdown-item.danger:hover {
+  background: color-mix(in srgb, red 10%, transparent);
+  color: red;
+}
+
+/* 原文可折叠条 */
+.ai-workspace-source-collapse {
+  border-bottom: 1px solid var(--surface-border-soft);
+  background: color-mix(in srgb, var(--surface-secondary) 30%, transparent);
+  flex-shrink: 0;
+}
+
+.ai-workspace-source-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 5px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  gap: 8px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-source-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.ai-workspace-source-summary {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-workspace-source-content {
+  padding: 6px 12px 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  border-top: 1px dashed var(--surface-border-soft);
+  background: var(--surface-primary);
+}
+
+.ai-workspace-source-content pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 核心画布区（占据全部剩余垂直空间） */
+.ai-workspace-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 12px;
+  position: relative;
+}
+
+/* 状态展示 */
+.ai-workspace-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border-radius: var(--radius-md);
+  margin: auto 0;
+}
+
+.ai-workspace-status.running {
+  color: var(--accent-color);
+}
+
+.ai-workspace-status-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.ai-workspace-status.error {
+  border: 1px solid color-mix(in srgb, red 30%, transparent);
+  background: color-mix(in srgb, red 6%, var(--surface-primary));
+  color: var(--text-primary);
+}
+
+.ai-workspace-error-msg {
+  font-size: 13px;
+  text-align: center;
+  color: red;
+  line-height: 1.5;
+}
+
+.ai-workspace-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-retry-btn:hover {
+  background: var(--surface-elevated);
+}
+
+/* 空状态 */
+.ai-workspace-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  margin: auto;
+  max-width: 280px;
+  color: var(--text-tertiary);
+  padding: 20px 0;
+}
+
+.ai-workspace-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent-light) 40%, transparent);
+  color: var(--accent-color);
+  margin-bottom: 4px;
+}
+
+.ai-workspace-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ai-workspace-empty-sub {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* 结果内容区 */
+.ai-workspace-result-body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-workspace-result-content {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  background: var(--surface-primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 0;
+}
+
+/* 底部操作工具栏 */
+.ai-workspace-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--surface-border-soft);
+  background: color-mix(in srgb, var(--surface-elevated) 85%, transparent);
+  flex-shrink: 0;
+}
+
+.ai-workspace-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.ai-workspace-meta-model {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.ai-workspace-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-workspace-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.ai-workspace-btn.secondary {
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+
+.ai-workspace-btn.secondary:hover:not(:disabled) {
+  background: var(--surface-elevated);
+  border-color: var(--surface-border);
+}
+
+.ai-workspace-btn.primary {
+  border: 1px solid transparent;
+  background: var(--accent-color);
+  color: #ffffff;
+}
+
+.ai-workspace-btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.ai-workspace-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ai-workspace-btn.success {
+  background: color-mix(in srgb, #10b981 16%, var(--surface-secondary));
+  color: #10b981;
+  border-color: #10b981;
+}
+
+/* 编辑 / 新增弹层 */
+.ai-workspace-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, #000000 45%, transparent);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+  animation: aiWorkspaceFadeIn var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 28px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-workspace-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--surface-border-soft);
+}
+
+.ai-workspace-modal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-workspace-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.ai-workspace-modal-close:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+
+.ai-workspace-modal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-workspace-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-workspace-modal-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.ai-workspace-modal-input {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-modal-input:focus {
+  border-color: var(--accent-color);
+}
+
+.ai-workspace-modal-textarea {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border-soft);
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-modal-textarea:focus {
+  border-color: var(--accent-color);
+}
+
+.ai-workspace-modal-error {
+  font-size: 11px;
+  color: red;
+  line-height: 1.4;
+}
+
+.ai-workspace-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--surface-border-soft);
+  background: var(--surface-secondary);
+}
+
+.ai-workspace-modal-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-workspace-modal-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ai-workspace-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--motion-fast) var(--ease-out);
+}
+
+.ai-workspace-modal-btn.secondary {
+  border-color: var(--surface-border-soft);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+}
+
+.ai-workspace-modal-btn.primary {
+  background: var(--accent-color);
+  color: #ffffff;
+}
+
+.ai-workspace-modal-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.ai-workspace-modal-btn.danger-link {
+  background: transparent;
+  color: red;
+  padding: 0 4px;
+}
+
+.ai-workspace-modal-btn.danger-link:hover {
+  text-decoration: underline;
+}
+
+/* Mini 模式（320px 窄屏）与小窗自适应 */
+@media (max-width: 480px) {
+  .ai-workspace-header {
+    padding: 6px 8px;
+  }
+
+  .ai-workspace-back-label {
+    display: none;
+  }
+
+  .ai-workspace-meta-tag {
+    display: none;
+  }
+
+  .ai-workspace-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .ai-workspace-footer-meta {
+    justify-content: space-between;
+  }
+
+  .ai-workspace-footer-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .ai-workspace-footer-actions .ai-workspace-btn {
+    padding: 0 4px;
+    font-size: 11px;
+    justify-content: center;
+  }
+
+  .ai-workspace-modal-card {
+    max-width: 100%;
+  }
+}
