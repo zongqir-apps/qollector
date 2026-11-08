@@ -186,7 +186,7 @@
 }
 
 .tag-text.ai-tag-text {
-  color: var(--tag-ai-title);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -210,8 +210,9 @@
   align-items: center;
   justify-content: center;
   padding: 1px 6px;
-  background: var(--tag-ai-bg);
-  color: var(--tag-ai-fg);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
   border-radius: 9999px;
   font-size: 9px;
   font-weight: 600;

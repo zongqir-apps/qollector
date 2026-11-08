@@ -176,22 +176,21 @@
   --state-warning-fg-strong: #c07d00;
   --state-info-fg-strong: #0f8098;
 
-  /* Solid Capsule Tag Tokens (Light) */
-  --tag-user-bg: var(--accent-color);
-  --tag-user-fg: #ffffff;
-  --tag-ai-bg: #7c3aed;
-  --tag-ai-bg-hover: #6d28d9;
-  --tag-ai-fg: #ffffff;
-  --tag-ai-title: #7c3aed;
-  --tag-ai-border-selected: #c4b5fd;
-  --tag-source-bg: #475569;
-  --tag-source-bg-hover: #334155;
-  --tag-source-fg: #ffffff;
-  --tag-source-border-selected: #94a3b8;
-  --tag-type-bg: #0284c7;
-  --tag-type-bg-hover: #0369a1;
-  --tag-type-fg: #ffffff;
-  --tag-type-border-selected: #7dd3fc;
+  /* Refined Neutral Capsule Tag Tokens (Light) */
+  --tag-default-bg: var(--bg-hover);
+  --tag-default-border: var(--border-color);
+  --tag-default-fg: var(--text-secondary);
+  --tag-default-bg-hover: var(--bg-card-hover);
+  --tag-default-border-hover: var(--border-btn);
+  --tag-default-fg-hover: var(--text-primary);
+
+  --tag-user-bg: color-mix(in srgb, var(--accent-color) 10%, var(--bg-hover));
+  --tag-user-border: color-mix(in srgb, var(--accent-color) 25%, var(--border-color));
+  --tag-user-fg: color-mix(in srgb, var(--accent-color) 75%, var(--text-primary) 25%);
+
+  --tag-selected-bg: var(--accent-color);
+  --tag-selected-border: var(--accent-color);
+  --tag-selected-fg: var(--text-on-accent);
 
   /* Accent interaction tokens */
   --accent-border-soft: color-mix(in srgb, var(--accent-color) 30%, transparent);
@@ -1366,22 +1365,21 @@
   --state-warning-fg-strong: #ffb340;
   --state-info-fg-strong: #9de8f8;
 
-  /* Solid Capsule Tag Tokens (Dark) */
-  --tag-user-bg: var(--accent-color);
-  --tag-user-fg: #ffffff;
-  --tag-ai-bg: #6d28d9;
-  --tag-ai-bg-hover: #7c3aed;
-  --tag-ai-fg: #ffffff;
-  --tag-ai-title: #a78bfa;
-  --tag-ai-border-selected: #c4b5fd;
-  --tag-source-bg: #334155;
-  --tag-source-bg-hover: #475569;
-  --tag-source-fg: #f8fafc;
-  --tag-source-border-selected: #94a3b8;
-  --tag-type-bg: #0369a1;
-  --tag-type-bg-hover: #0284c7;
-  --tag-type-fg: #ffffff;
-  --tag-type-border-selected: #7dd3fc;
+  /* Refined Neutral Capsule Tag Tokens (Dark) */
+  --tag-default-bg: var(--bg-hover);
+  --tag-default-border: var(--border-color);
+  --tag-default-fg: var(--text-secondary);
+  --tag-default-bg-hover: var(--bg-card-hover);
+  --tag-default-border-hover: var(--border-btn);
+  --tag-default-fg-hover: var(--text-primary);
+
+  --tag-user-bg: color-mix(in srgb, var(--accent-color) 12%, var(--bg-hover));
+  --tag-user-border: color-mix(in srgb, var(--accent-color) 28%, var(--border-color));
+  --tag-user-fg: color-mix(in srgb, var(--accent-color) 80%, var(--text-primary) 20%);
+
+  --tag-selected-bg: var(--accent-color);
+  --tag-selected-border: var(--accent-color);
+  --tag-selected-fg: var(--text-on-accent);
 
   /* Scheme C surface tokens */
   --surface-elevated: rgba(var(--bg-secondary-rgb), calc(var(--glass-opacity) * 0.98));

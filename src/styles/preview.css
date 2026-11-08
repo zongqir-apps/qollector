@@ -132,31 +132,40 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--tag-ai-fg);
-  background: var(--tag-ai-bg);
-  border: none;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
   line-height: 1.35;
   max-width: min(260px, 100%);
-  box-shadow: 0 1px 2px var(--shadow-sm);
   user-select: none;
   cursor: default;
   transition: background-color var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard),
               transform var(--motion-fast) var(--ease-standard);
 }
 
 .preview-meta-ai-summary:hover {
-  background: var(--tag-ai-bg-hover);
+  background: var(--bg-card-hover);
+  border-color: var(--border-btn);
+  color: var(--text-primary);
   transform: translateY(-0.5px);
 }
 
 .preview-meta-ai-icon {
   flex-shrink: 0;
-  color: var(--tag-ai-fg);
-  opacity: 0.92;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  transition: color var(--motion-fast) var(--ease-standard), opacity var(--motion-fast) var(--ease-standard);
+}
+
+.preview-meta-ai-summary:hover .preview-meta-ai-icon {
+  color: var(--text-primary);
+  opacity: 1;
 }
 
 .preview-meta-ai-summary-text {

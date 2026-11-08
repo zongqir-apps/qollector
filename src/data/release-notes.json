@@ -2,24 +2,47 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.3",
+      "publishedAt": "2026-11-08",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-3",
+      "summary": {
+        "zh-CN": "彻底取缔紫色与粗暴大色块设定，标签全面重构为轻量通透的高级中性微胶囊，AI 微标灵动静默，界面唯一视觉主角色系彻底归还用户自定义强调色。",
+        "en-US": "Completely eliminated intrusive purple blocks; overhauled all tags into refined, lightweight neutral capsules with quiet Sparkles icons, returning the visual focus entirely to the user's chosen accent color."
+      },
+      "highlights": {
+        "zh-CN": [
+          "拔除紫色主色系与抢戏色块：彻底取消将深紫罗兰与深石板灰作为实色主基调的错误设定；卡片标签与来源、类型统一收敛进素雅克制的中性暗调微质感与细边框体系，绝不在内容区争抢视觉注意力。",
+          "AI 标签轻量灵动化：保留纤细精致的 Sparkles 矢量微标，字色与外框随中性胶囊呼吸感呈现，安静服务于快速定位，杜绝调色盘污染。",
+          "全局唯一主角色系统一：界面高亮与激活焦点严格受控于用户自定义的主题强调色（红/蓝等），选中标签与核心操作同频联动，告别红配紫的违和杂乱感。",
+          "预览面板 AI 摘要同步中性化：由突兀实色块降级为与底部时间、来源浑然一体的极简中性胶囊，保持纯净内敛的高级工具质感。"
+        ],
+        "en-US": [
+          "Eliminated Jarring Purple Blocks: stripped out intrusive solid purple and dark slate badges; all tags, sources, and types are unified into an understated, lightweight neutral capsule aesthetic with subtle borders, eliminating visual clutter in card streams.",
+          "Quiet & Refined AI Badges: preserved the delicate Sparkles vector micro-icon while aligning the badge shell and text with the neutral capsule palette for effortless glancing without rainbow distractions.",
+          "Single Unified Accent Focus: interactive highlights and selected tags strictly follow the user's configured accent color (e.g. red, blue), ending jarring clashing combinations like red against purple.",
+          "Neutralized Preview AI Summary: transformed the preview summary from a heavy block into a minimalist neutral pill that seamlessly blends with the surrounding metadata stream."
+        ]
+      }
+    },
+    {
       "version": "0.7.2",
       "publishedAt": "2026-11-08",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-2",
       "summary": {
-        "zh-CN": "全色系高级胶囊标签全新上线，彻底告别发灰浑浊与视觉发虚；剔除预览面板奇葩 Emoji 灯泡并升级为精致矢量微标；全面夯实 AI 助手防误触穿透、下拉截断与主题色自热。",
-        "en-US": "Introduced modern solid capsule tag design with high-contrast typography, eliminated muddy translucent tints and orphan emoji lightbulbs in preview meta, and hardened AI assistant against accidental dismissal and dropdown clipping."
+        "zh-CN": "取缔突兀紫色与深灰大色块，标签全面回归轻量通透的高级中性微胶囊，界面视觉焦点彻底收敛至用户自定义强调色；预览面板 AI 摘要升级为极简中性胶囊；全面夯实 AI 助手防误触穿透、下拉截断与主题色自热。",
+        "en-US": "Overhauled tags into refined lightweight neutral capsules, eliminating jarring purple and dark blocks to keep visual focus strictly on user accent colors; streamlined preview AI summary and hardened workspace interactions."
       },
       "highlights": {
         "zh-CN": [
-          "全色系高级胶囊标签体系（Solid Capsule Tags）：彻底废除暗色背景下浅紫发脏发虚的半透泥水质感，重构为深邃紫罗兰实色胶囊（#6d28d9 / #7c3aed）配 100% 纯白高对比文字与 Sparkles 矢量微标；用户标签随主题强调色实色呈现，来源标签收敛为克制深板岩灰，构建清晰严谨的视觉层级。",
-          "预览面板 AI 摘要质感升级：剔除原先硬编码的操作系统原生 💡 黄灯泡，升级为精致矢量微标与流线型紫罗兰药丸胶囊，在 mini 模式下自适应文本截断，整体更加细腻协调。",
+          "轻量高级中性微胶囊体系（Refined Neutral Tags）：彻底拔除深紫色、深灰等抢戏大色块，标签整体回归素雅克制的中性暗调微质感与细边框；AI 标签以灵动精致的矢量微标（Sparkles）静默标示，来源与类型统一收敛，界面唯一的主色调完全归还给用户自定义的强调色（红/蓝等）。",
+          "预览面板 AI 摘要质感升级：剔除原先硬编码的操作系统原生 💡 黄灯泡，升级为精致矢量微标与极简中性药丸胶囊，在 mini 模式下自适应文本截断，浑然融入底部元数据流。",
           "AI 助手防误触穿透与表单保护：在工作区与 Prompt 编辑弹窗增加根层事件隔离与未保存脏数据二次确认，彻底解决编辑提示词点偏导致整个工作区缩退消失的问题。",
           "交互与布局细节打磨：修复“管理动作”下拉菜单被容器截断的显示缺陷；预设动作用语全面优化为更通俗的人话（核心要点、整理润色、大白话解释）；底部操作按钮全量升级为药丸胶囊风格，铅笔编辑图标支持 Hover 显隐与右键一键呼出。",
           "主题色冷启动防闪烁：引入强调色本地持久化自热缓存，彻底消除非默认主题色在应用初次渲染时红变蓝的短暂闪烁。"
         ],
         "en-US": [
-          "Solid Capsule Tag Overhaul: replaced muddy, washed-out lavender translucent badges with solid violet capsules (#6d28d9 / #7c3aed) paired with pure white high-contrast text and a crisp Sparkles vector icon; user tags now use solid accent color, and source tags adopt restrained slate gray for an uncluttered visual hierarchy.",
-          "Refined Preview AI Summary Capsule: replaced the orphan system 💡 emoji with a unified Lucide Sparkles vector icon and streamlined pill capsule, supporting graceful single-line ellipsis in mini window mode.",
+          "Refined Neutral Capsule Tag System: eliminated jarring solid purple and heavy slate blocks; all metadata badges now adopt a restrained, lightweight neutral capsule aesthetic with subtle borders. AI tags are indicated solely by a crisp Sparkles vector icon, returning the spotlight entirely to the user's accent color.",
+          "Minimalist Preview AI Summary: replaced the orphan system 💡 emoji with a unified Lucide Sparkles vector icon and clean neutral pill capsule, supporting graceful single-line ellipsis in mini window mode.",
           "AI Assistant Accidental Dismissal Guard: isolated root click events and added unsaved-changes protection to prevent the entire AI workspace from abruptly folding when clicking outside active prompt inputs.",
           "Polished Actions & Dropdown Navigation: fixed action management dropdown clipping caused by container overflow, adopted natural preset naming, and upgraded workspace action buttons to modern rounded pills with hover-reveal edit triggers and right-click shortcuts.",
           "Instant Accent Color Hydration: added local storage cache pre-warming to eliminate flash-of-default-blue on startup when using custom accent colors (e.g. red)."
