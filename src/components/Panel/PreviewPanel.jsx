@@ -898,9 +898,28 @@ function PreviewPanel() {
             <span className="preview-image-inline-hint">{t('item.imageLightboxHint')}</span>
           </div>
           {item.ocr_text && (
-            <div className="preview-ocr">
-              <div className="ocr-label">{t('item.recognizedText')}</div>
-              <div className="ocr-content">{item.ocr_text}</div>
+            <div className="preview-ocr-card">
+              <div className="preview-ocr-header">
+                <div className="preview-ocr-title">
+                  <ScanText size={14} />
+                  <span>{t('item.recognizedText')}</span>
+                </div>
+                <button
+                  type="button"
+                  className="preview-ocr-copy-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(item.ocr_text);
+                    showPreviewToast(t('item.ocrCopied', '识别文本已复制'));
+                  }}
+                  title={t('item.copyRecognizedText', '复制识别文本')}
+                  aria-label={t('item.copyRecognizedText', '复制识别文本')}
+                >
+                  <Copy size={12} />
+                  <span>{t('common.copy', '复制')}</span>
+                </button>
+              </div>
+              <div className="preview-ocr-content">{item.ocr_text}</div>
             </div>
           )}
         </div>
@@ -1191,7 +1210,7 @@ function PreviewPanel() {
         </div>
 
         {/* 备注区 - 内容下方，作为批注 */}
-        {!showAIAssistant && !isEditingContent && (
+        {!showAIAssistant && !isEditingContent && (item.user_note || isNoteEditing) && (
           <div
             ref={noteSectionRef}
             className={`preview-note-section ${isNoteEditing ? 'is-editing' : ''} ${item.user_note ? 'has-note' : ''}`}
@@ -1229,19 +1248,6 @@ function PreviewPanel() {
               onCancelNoteEdit={cancelNoteEdit}
               variant="preview"
             />
-            {!item.user_note && editingNoteId !== item.id && (
-              <button
-                type="button"
-                className="preview-add-note-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  startEditNote(item);
-                }}
-              >
-                <StickyNote size={12} />
-                <span>{t('item.addNote')}</span>
-              </button>
-            )}
           </div>
         )}
 

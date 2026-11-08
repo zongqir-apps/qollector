@@ -224,6 +224,8 @@
     "doubleClickToEdit": "Double-click to edit",
     "doubleClickToOpen": "Double-click to open",
     "recognizedText": "Recognized Text",
+    "copyRecognizedText": "Copy recognized text",
+    "ocrCopied": "Recognized text copied",
     "imageOnlyView": "Image only",
     "imageHoverZoomHint": "Double-click the image or use the top-right zoom button to open zoom mode",
     "imageLightboxHint": "Use mouse wheel to zoom, drag with left button, press Esc to close",

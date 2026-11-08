@@ -424,10 +424,64 @@
   pointer-events: none;
 }
 
-.preview-ocr {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--border-light);
+/* OCR 识别结果卡片 */
+.preview-ocr-card {
+  width: 100%;
+  max-width: 84ch;
+  margin: 8px auto 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-light) 80%, transparent);
+  box-sizing: border-box;
+}
+
+.preview-ocr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-light) 50%, transparent);
+}
+
+.preview-ocr-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.preview-ocr-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--control-button-border);
+  background: var(--control-button-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.preview-ocr-copy-btn:hover {
+  background: var(--control-button-hover-bg);
+  color: var(--text-primary);
+  border-color: var(--control-button-hover-border);
+}
+
+.preview-ocr-content {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
 }
 
 .preview-file-content {
@@ -612,25 +666,6 @@
   min-width: 60px;
 }
 
-.preview-add-note-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border: 1px dashed var(--control-button-border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all var(--motion-fast) var(--ease-standard);
-}
-
-.preview-add-note-btn:hover {
-  border-color: var(--control-button-active-border);
-  color: var(--control-button-active-fg);
-  background: var(--control-button-active-bg);
-}
 
 
 /* ========== 现代化一体化画卷重塑 (Unified Preview Canvas) ========== */
@@ -769,18 +804,19 @@
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding: 16px 20px 12px;
 }
 
 .preview-panel.type-image .preview-image-content {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 12px;
   width: 100%;
-  min-height: 100%;
 }
 
 .preview-content-area.ai-assistant-mode {
@@ -829,14 +865,6 @@
   background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
   border: 1px solid color-mix(in srgb, var(--border-light) 75%, transparent);
   transition: min-height var(--motion-base) var(--ease-standard), padding var(--motion-base) var(--ease-standard);
-}
-
-.preview-note-section:not(.has-note):not(.is-editing) {
-  align-items: flex-end;
-  border: none;
-  background: transparent;
-  padding: 2px 0;
-  margin: 0 20px 4px;
 }
 
 .preview-note-section.has-note {
@@ -1165,10 +1193,6 @@
 
   .preview-note-section {
     margin: 0 12px 6px;
-  }
-
-  .preview-note-section:not(.has-note):not(.is-editing) {
-    margin: 0 12px 2px;
   }
 
   .preview-meta {
