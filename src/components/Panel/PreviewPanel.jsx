@@ -222,7 +222,7 @@ function PreviewPanel() {
     if (!item?.content || (item.type_ !== 'text' && item.type_ !== 'code' && !item.code_language)) {
       return [];
     }
-    return resolveMatchingTransforms(item.content, { language: i18n.language });
+    return resolveMatchingTransforms(item.content, { language: i18n.language, code_language: item.code_language });
   }, [item?.content, item?.type_, item?.code_language, i18n.language]);
 
   const previewableRule = useMemo(() => {
