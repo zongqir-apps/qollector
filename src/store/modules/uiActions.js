@@ -4,6 +4,8 @@ import { TOUR_COMPLETED_STORAGE_KEY } from '../../constants/storageKeys';
 export const createUiActions = (set) => ({
   setShowSettings: (v, tab = null) => set({ showSettings: v, settingsInitialTab: v ? tab : null }),
   setIsAlwaysOnTop: (v) => set({ isAlwaysOnTop: v }),
+  toggleOrderLocked: () => set((state) => ({ isOrderLocked: !state.isOrderLocked })),
+  setIsOrderLocked: (v) => set({ isOrderLocked: Boolean(v) }),
   setIsMiniMode: (v) => set({ isMiniMode: v }),
   setPinBeforeMini: (v) => set({ pinBeforeMini: v }),
   setWorkbenchPanelBeforeMini: (v) => set({ workbenchPanelBeforeMini: v }),

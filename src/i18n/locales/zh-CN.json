@@ -18,6 +18,8 @@
   "titlebar": {
     "pin": "窗口固定",
     "unpin": "取消窗口固定",
+    "lockOrder": "锁定列表顺序 (Alt+L)",
+    "unlockOrder": "解除顺序锁定 (Alt+L)",
     "minimize": "最小化",
     "maximize": "最大化",
     "restore": "还原",
@@ -1193,6 +1195,8 @@
   },
   "history": {
     "backToTop": "回到最新",
+    "orderLockedBanner": "物理顺序已死锁 · 点击与粘贴绝不跳移",
+    "unlockNow": "点击解除",
     "autoCleanupNoticeEnabled": "当前自动清理：保留 {{days}} 天或 {{items}} 条",
     "autoCleanupNoticeDisabled": "当前未开启自动清理，可在设置中启用短周期保留",
     "autoCleanupAdjust": "去设置调整",
@@ -1267,6 +1271,7 @@
       "moveCards": "上下移动焦点卡片",
       "copyFocused": "复制当前焦点项",
       "quickCompare": "快速对比可见前两条",
+      "lockOrder": "锁定/解除物理列表顺序",
       "jumpGroups": "跳转到时间分组",
       "selectAllVisible": "全选历史流可见项",
       "batchTag": "打开批量标签编辑",

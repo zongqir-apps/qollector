@@ -25,6 +25,9 @@ const shouldSkipInternalSourceCopy = (item, allowInternalCopy, options = {}) => 
 };
 
 const syncCopiedItemActivity = (state, itemId, updatedAt) => {
+  if (state.isOrderLocked) {
+    return state;
+  }
   let changed = false;
   const nextItems = state.items.map((candidate) => {
     if (candidate.id !== itemId) return candidate;
@@ -64,9 +67,12 @@ export const createItemActions = (set, get) => ({
       if (shouldSkipInternalSourceCopy(itemForCopy, get().copyQollectSourceItems, options)) {
         return false;
       }
-      await copyItemToClipboard(itemForCopy);
-      const updatedAt = Math.floor(Date.now() / 1000);
-      set((state) => syncCopiedItemActivity(state, itemForCopy.id, updatedAt));
+      const isOrderLocked = Boolean(get().isOrderLocked);
+      await copyItemToClipboard(itemForCopy, { skipTouch: isOrderLocked });
+      if (!isOrderLocked) {
+        const updatedAt = Math.floor(Date.now() / 1000);
+        set((state) => syncCopiedItemActivity(state, itemForCopy.id, updatedAt));
+      }
       pushCopyFeedback(set, {
         itemId: itemForCopy.id,
         source,
@@ -86,9 +92,12 @@ export const createItemActions = (set, get) => ({
       if (shouldSkipInternalSourceCopy(itemForCopy, get().copyQollectSourceItems, options)) {
         return false;
       }
-      await copyItemToClipboard(itemForCopy);
-      const updatedAt = Math.floor(Date.now() / 1000);
-      set((state) => syncCopiedItemActivity(state, itemForCopy.id, updatedAt));
+      const isOrderLocked = Boolean(get().isOrderLocked);
+      await copyItemToClipboard(itemForCopy, { skipTouch: isOrderLocked });
+      if (!isOrderLocked) {
+        const updatedAt = Math.floor(Date.now() / 1000);
+        set((state) => syncCopiedItemActivity(state, itemForCopy.id, updatedAt));
+      }
       pushCopyFeedback(set, {
         itemId: itemForCopy.id,
         source,

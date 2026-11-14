@@ -1,4 +1,4 @@
-﻿/* TitleBar 2.0 - layered glass + status capsules */
+/* TitleBar 2.0 - layered glass + status capsules */
 .titlebar {
   position: relative;
   z-index: 120;
@@ -443,6 +443,20 @@
 .titlebar-btn.close-btn:hover {
   background: color-mix(in srgb, var(--state-error-bg) 88%, transparent);
   color: var(--state-error-fg);
+}
+
+.titlebar-btn.order-lock-btn:hover {
+  background: color-mix(in srgb, var(--accent-light) 82%, transparent);
+  color: var(--accent-color);
+}
+
+.titlebar-btn.order-lock-btn.active {
+  color: var(--state-warning-fg);
+  background: color-mix(in srgb, var(--state-warning-bg) 94%, transparent);
+}
+
+.titlebar-btn.order-lock-btn.active:hover {
+  background: color-mix(in srgb, var(--state-warning-bg) 100%, transparent);
 }
 
 .titlebar-btn.pin-btn:hover {

@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useCallback, useState, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Lock } from 'lucide-react';
 import { Virtuoso } from 'react-virtuoso';
 import { invoke } from '@tauri-apps/api/core';
 import useAppStore from '../../store/useAppStore';
@@ -336,6 +336,8 @@ function HistoryStream({ style }) {
   const startupFavoritesViewEnabled = useAppStore(s => s.startupFavoritesViewEnabled);
   const itemsRevision = useAppStore(s => s.itemsRevision);
   const itemsById = useAppStore(s => s.itemsById);
+  const isOrderLocked = useAppStore(s => s.isOrderLocked);
+  const toggleOrderLocked = useAppStore(s => s.toggleOrderLocked);
 
   const setSearchQuery = useAppStore(s => s.setSearchQuery);
   const setCollectionSearchQuery = useAppStore(s => s.setCollectionSearchQuery);
@@ -1887,6 +1889,28 @@ function HistoryStream({ style }) {
       onClick={handleHistoryStreamClick}
     >
       <SearchBar {...searchBarProps} />
+
+      {isOrderLocked && (
+        <div
+          className="order-locked-banner"
+          onClick={toggleOrderLocked}
+          role="button"
+          tabIndex={0}
+          title={t('titlebar.unlockOrder')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleOrderLocked();
+            }
+          }}
+        >
+          <div className="order-locked-banner-text">
+            <Lock size={12} className="order-locked-banner-icon" />
+            <span>{t('history.orderLockedBanner')}</span>
+          </div>
+          <span className="order-locked-banner-action">{t('history.unlockNow')}</span>
+        </div>
+      )}
 
       <div className="history-stream-content">
         {loading ? (

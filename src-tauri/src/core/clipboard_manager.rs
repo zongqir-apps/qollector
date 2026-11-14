@@ -2027,6 +2027,14 @@ impl ClipboardManager {
     }
 
     pub async fn copy_to_clipboard(&self, item: &ClipboardItem) -> Result<(), ClipboardError> {
+        self.copy_to_clipboard_ext(item, false).await
+    }
+
+    pub async fn copy_to_clipboard_ext(
+        &self,
+        item: &ClipboardItem,
+        skip_touch: bool,
+    ) -> Result<(), ClipboardError> {
         let content = if item.type_ == "image" {
             // Load original image from file
             if let Some(image_paths_str) = &item.image_paths {
@@ -2084,8 +2092,8 @@ impl ClipboardManager {
             return Err(ClipboardError::UnsupportedType);
         };
 
-        // Reusing an existing item counts as activity, so refresh updated_at for sorting.
-        {
+        // Reusing an existing item counts as activity, so refresh updated_at for sorting unless skip_touch is requested.
+        if !skip_touch {
             let repo = self.repository.lock().await;
             let _ = repo.touch(&item.id).await;
         }

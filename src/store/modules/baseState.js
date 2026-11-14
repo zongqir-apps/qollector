@@ -70,6 +70,7 @@ export const createBaseState = ({
   showSettings: false,
   settingsInitialTab: null,
   isAlwaysOnTop: false,
+  isOrderLocked: false,
   isMiniMode: false,
   pinBeforeMini: false,
   workbenchPanelBeforeMini: null,

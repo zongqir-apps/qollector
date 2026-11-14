@@ -8,6 +8,8 @@ import {
   SquareSquare,
   X,
   Pin,
+  Lock,
+  Unlock,
   Expand,
   Minimize2,
 } from 'lucide-react';
@@ -38,6 +40,8 @@ function TitleBar({
 }) {
   const { t } = useTranslation();
   const panelMode = useAppStore(s => s.panelMode);
+  const isOrderLocked = useAppStore(s => s.isOrderLocked);
+  const toggleOrderLocked = useAppStore(s => s.toggleOrderLocked);
 
   const [glassOpacity, setGlassOpacity] = useState(() => {
     const raw = Number.parseFloat(localStorage.getItem(GLASS_STORAGE_KEY) || '');
@@ -102,8 +106,13 @@ function TitleBar({
     };
 
     const handleShortcut = (event) => {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
       if (isEditableElement(event.target)) return;
+      if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        toggleOrderLocked();
+        return;
+      }
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
       const key = event.key.toLowerCase();
       if (!event.shiftKey && key === 'm') {
         event.preventDefault();
@@ -113,7 +122,7 @@ function TitleBar({
 
     window.addEventListener('keydown', handleShortcut);
     return () => window.removeEventListener('keydown', handleShortcut);
-  }, [isMiniMode, onSelectViewMode]);
+  }, [isMiniMode, onSelectViewMode, toggleOrderLocked]);
 
   useEffect(() => {
     const appWindow = getCurrentWindow();
@@ -228,6 +237,13 @@ function TitleBar({
         <span className="titlebar-btn-divider" aria-hidden="true" />
 
         <div className="titlebar-btn-group titlebar-btn-group-window">
+          <button
+            onClick={toggleOrderLocked}
+            className={`titlebar-btn order-lock-btn ${isOrderLocked ? 'active' : ''}`}
+            title={isOrderLocked ? t('titlebar.unlockOrder') : t('titlebar.lockOrder')}
+          >
+            {isOrderLocked ? <Lock size={14} /> : <Unlock size={14} />}
+          </button>
           <button
             onClick={onToggleAlwaysOnTop}
             className={`titlebar-btn pin-btn ${isAlwaysOnTop ? 'active' : ''}`}

@@ -2245,3 +2245,57 @@
   color: var(--text-on-accent);
   border-color: var(--primary-color);
 }
+
+/* ========== 物理顺序死锁横幅 ========== */
+.order-locked-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 10px;
+  margin: 4px 10px 4px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--state-warning-bg) 92%, var(--bg-card) 8%);
+  border: 1px solid color-mix(in srgb, var(--state-warning-fg) 28%, transparent);
+  color: var(--state-warning-fg);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+
+.order-locked-banner:hover {
+  background: color-mix(in srgb, var(--state-warning-bg) 100%, transparent);
+  border-color: color-mix(in srgb, var(--state-warning-fg) 48%, transparent);
+}
+
+.order-locked-banner:active {
+  transform: scale(0.99);
+}
+
+.order-locked-banner-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-locked-banner-icon {
+  flex-shrink: 0;
+  color: var(--state-warning-fg);
+}
+
+.order-locked-banner-action {
+  font-size: 10.5px;
+  text-decoration: underline;
+  opacity: 0.85;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+

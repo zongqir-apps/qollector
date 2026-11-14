@@ -128,9 +128,10 @@ pub async fn get_item_by_id(
 pub async fn copy_item(
     manager: State<'_, Arc<ClipboardManager>>,
     item: ClipboardItem,
+    skip_touch: Option<bool>,
 ) -> Result<(), String> {
     manager
-        .copy_to_clipboard(&item)
+        .copy_to_clipboard_ext(&item, skip_touch.unwrap_or(false))
         .await
         .map_err(|e| e.to_string())
 }

@@ -71,6 +71,7 @@ function ShortcutHelpOverlay({ isOpen, onClose }) {
       { id: 'move-cards', combo: '↑ / ↓', label: t('shortcutHelp.items.moveCards') },
       { id: 'copy-focused', combo: 'Enter', label: t('shortcutHelp.items.copyFocused') },
       { id: 'quick-compare', combo: `${modifiers.primary}+Shift+2`, label: t('shortcutHelp.items.quickCompare') },
+      { id: 'lock-order', combo: `${modifiers.secondary}+L`, label: t('shortcutHelp.items.lockOrder') },
       { id: 'jump-groups', combo: `${modifiers.secondary}+1/2/3/4`, label: t('shortcutHelp.items.jumpGroups') },
       { id: 'select-all-history', combo: `${modifiers.primary}+A`, label: t('shortcutHelp.items.selectAllVisible') },
     ];

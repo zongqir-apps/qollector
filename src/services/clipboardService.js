@@ -1,7 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export const copyItemToClipboard = async (item) => {
-  return invoke('copy_item', { item });
+export const copyItemToClipboard = async (item, options = {}) => {
+  return invoke('copy_item', {
+    item,
+    skip_touch: Boolean(options?.skipTouch),
+  });
 };
 
 export const toggleItemPin = async (id, options = {}) => {

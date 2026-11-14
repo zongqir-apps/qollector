@@ -18,6 +18,8 @@
   "titlebar": {
     "pin": "Pin Window",
     "unpin": "Unpin Window",
+    "lockOrder": "Lock List Order (Alt+L)",
+    "unlockOrder": "Unlock List Order (Alt+L)",
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
@@ -1219,6 +1221,8 @@
   },
   "history": {
     "backToTop": "Back to latest",
+    "orderLockedBanner": "Physical order locked · No jumping on click or paste",
+    "unlockNow": "Unlock now",
     "autoCleanupNoticeEnabled": "Auto-clean active: keep {{days}} days or {{items}} items",
     "autoCleanupNoticeDisabled": "Auto-clean is off. You can enable a short retention window in Settings.",
     "autoCleanupAdjust": "Adjust in Settings",
@@ -1267,6 +1271,7 @@
       "moveCards": "Move focused card",
       "copyFocused": "Copy focused item",
       "quickCompare": "Quick compare top 2 visible",
+      "lockOrder": "Lock/Unlock physical list order",
       "jumpGroups": "Jump to day groups",
       "selectAllVisible": "Select all visible history items",
       "batchTag": "Open batch tag editor",
