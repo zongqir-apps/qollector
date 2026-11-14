@@ -398,6 +398,22 @@ impl ClipboardItem {
         blake3::hash(content.as_bytes()).to_hex().to_string()
     }
 
+    /// Calculate stable image content hash from decoded RGBA pixels,
+    /// so duplicate images in different container/compression formats
+    /// (e.g. BMP/DIB vs PNG) produce identical hashes.
+    pub fn calculate_image_hash(image_bytes: &[u8]) -> String {
+        if let Ok(img) = image::load_from_memory(image_bytes) {
+            let rgba = img.to_rgba8();
+            let mut hasher = blake3::Hasher::new();
+            hasher.update(&img.width().to_le_bytes());
+            hasher.update(&img.height().to_le_bytes());
+            hasher.update(rgba.as_raw());
+            hasher.finalize().to_hex().to_string()
+        } else {
+            blake3::hash(image_bytes).to_hex().to_string()
+        }
+    }
+
     pub fn get_image_paths(&self) -> Option<ImagePaths> {
         self.image_paths
             .as_ref()

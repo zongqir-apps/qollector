@@ -301,7 +301,10 @@
     "sendingEmail": "发送中...",
     "sentToEmailToast": "已成功发送至 {{email}}",
     "sendEmailFailed": "发送失败: {{error}}",
-    "emailNotConfigured": "未配置发件邮箱，请先前往设置开启"
+    "emailNotConfigured": "未配置发件邮箱，请先前往设置开启",
+    "contentTooLongCollapsed": "内容过长 ({{size}} KB)，已折叠查看",
+    "expandFullContent": "展开查看全量",
+    "collapseContent": "收起内容"
   },
   "edit": {
     "content": "内容:",
@@ -464,6 +467,8 @@
       "filterNoiseDigitsHint": "自动过滤 1~2 位常规字符（保留特殊符号）与 3~6 位纯数字验证码，避免碎片数据污染历史",
       "ignoreSensitiveClipboard": "忽略密码管理器敏感剪贴板数据",
       "ignoreSensitiveClipboardHint": "自动检测并跳过 1Password、Bitwarden、KeePass 等复制的密码与 2FA 凭据，防止敏感信息落盘记录",
+      "collapseDuplicateItems": "连续重复项折叠与更新置顶",
+      "collapseDuplicateItemsHint": "当连续出现相同哈希内容（或相同图片像素）时，仅刷新最近更新时间并移至顶部，避免重复刷屏",
       "autostart": "开机自启动",
       "autostartHint": "系统启动时自动运行 Qollect",
       "textChunkSplitter": "长文本分卷助手",

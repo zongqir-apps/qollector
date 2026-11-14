@@ -6,6 +6,8 @@ import {
   formatHistoryCardTime,
   getTimelineColor,
   getContentPreview,
+  isContentOverRenderThreshold,
+  getRenderTruncatedContent,
   getFileName,
   getFileList,
   parseUrl,
@@ -101,6 +103,7 @@ function CompactCard({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
   const [copiedTranslation, setCopiedTranslation] = useState(false);
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
   const colorPickerRef = useRef(null);
   const translation = useMemo(() => getTranslationFromMetadata(item.metadata), [item.metadata]);
   const timelineColor = getTimelineColor(item.updated_at);
@@ -311,11 +314,43 @@ function CompactCard({
         );
       }
     }
+    const rawContent = item.content || '';
+    const isTooLong = isContentOverRenderThreshold(rawContent);
+    const contentToDisplay = (!isTooLong || isContentExpanded)
+      ? rawContent
+      : getRenderTruncatedContent(rawContent);
+
+    const renderTruncationBanner = () => {
+      if (!isTooLong) return null;
+      const sizeKb = (rawContent.length / 1024).toFixed(1);
+      return (
+        <div className="compact-card-truncated-banner">
+          <span className="compact-card-truncated-tip">
+            {t('item.contentTooLongCollapsed', { size: sizeKb })}
+          </span>
+          <button
+            type="button"
+            className="compact-card-expand-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsContentExpanded((prev) => !prev);
+            }}
+          >
+            {isContentExpanded ? t('item.collapseContent') : t('item.expandFullContent')}
+          </button>
+        </div>
+      );
+    };
+
     if (item.code_language && item.content) {
       return (
-        <Suspense fallback={<div className="compact-card-text panel-card-content-text">{getContentPreview(item.content)}</div>}>
-          <CodeBlock code={item.content} language={item.code_language} maxLines={3} compact />
-        </Suspense>
+        <div className="compact-card-text-wrapper">
+          <Suspense fallback={<div className="compact-card-text panel-card-content-text">{getContentPreview(contentToDisplay)}</div>}>
+            <CodeBlock code={contentToDisplay} language={item.code_language} maxLines={isContentExpanded ? 100 : 3} compact />
+          </Suspense>
+          {renderTruncationBanner()}
+        </div>
       );
     }
     if (isCurl) {
@@ -332,8 +367,9 @@ function CompactCard({
               </span>
             </div>
             <div className="compact-curl-preview">
-              {getContentPreview(item.content)}
+              {getContentPreview(contentToDisplay)}
             </div>
+            {renderTruncationBanner()}
           </div>
         );
       }
@@ -350,8 +386,11 @@ function CompactCard({
       );
     }
     return (
-      <div className="compact-card-text panel-card-content-text">
-        {getContentPreview(item.content)}
+      <div className="compact-card-text-wrapper">
+        <div className="compact-card-text panel-card-content-text">
+          {getContentPreview(contentToDisplay)}
+        </div>
+        {renderTruncationBanner()}
       </div>
     );
   };

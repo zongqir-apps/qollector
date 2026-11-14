@@ -80,8 +80,25 @@ export const getTimelineColor = (timestamp) => {
   return '#8e8e93';                             // 灰色 - 更早
 };
 
-export const getContentPreview = (content, maxLength = 100) => {
-  if (!content) return '';
+export const RENDER_TRUNCATE_BYTE_THRESHOLD = 50 * 1024; // 50KB 渲染降级门禁
+export const RENDER_TRUNCATE_MAX_CHARS = 2000;           // 默认渲染前 2000 字符
+
+export const isContentOverRenderThreshold = (content) => {
+  if (typeof content !== 'string') return false;
+  return content.length > RENDER_TRUNCATE_BYTE_THRESHOLD;
+};
+
+export const getRenderTruncatedContent = (content, maxChars = RENDER_TRUNCATE_MAX_CHARS) => {
+  if (typeof content !== 'string') return '';
+  if (content.length <= maxChars) return content;
+  return content.slice(0, maxChars);
+};
+
+export const getContentPreview = (content, maxLength = RENDER_TRUNCATE_MAX_CHARS) => {
+  if (!content || typeof content !== 'string') return '';
+  if (content.length > RENDER_TRUNCATE_BYTE_THRESHOLD) {
+    return content.slice(0, maxLength);
+  }
   return content;
 };
 

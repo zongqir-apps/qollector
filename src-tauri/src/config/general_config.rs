@@ -82,6 +82,13 @@ pub struct GeneralConfig {
     /// Ignore sensitive clipboard entries from password managers (1Password, Bitwarden, KeePassXC).
     #[serde(default = "default_ignore_sensitive_clipboard_enabled")]
     pub ignore_sensitive_clipboard_enabled: bool,
+    /// Automatically collapse duplicate/identical hash items and touch updated_at to move to top.
+    #[serde(default = "default_collapse_duplicate_items_enabled")]
+    pub collapse_duplicate_items_enabled: bool,
+}
+
+fn default_collapse_duplicate_items_enabled() -> bool {
+    true
 }
 
 fn default_ignore_sensitive_clipboard_enabled() -> bool {
@@ -185,6 +192,7 @@ impl Default for GeneralConfig {
             filter_noise_digits_enabled: default_filter_noise_digits_enabled(),
             text_chunk_splitter_enabled: false,
             ignore_sensitive_clipboard_enabled: default_ignore_sensitive_clipboard_enabled(),
+            collapse_duplicate_items_enabled: default_collapse_duplicate_items_enabled(),
         }
     }
 }

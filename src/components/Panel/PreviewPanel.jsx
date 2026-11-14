@@ -9,6 +9,8 @@ import useAppStore from '../../store/useAppStore';
 import { buildItemDerivations } from '../../store/modules/itemsIndex';
 import {
   getContentPreview,
+  isContentOverRenderThreshold,
+  getRenderTruncatedContent,
   getFileList,
   getFileName,
   formatDate,
@@ -53,6 +55,7 @@ function PreviewPanel() {
   const [copiedToolbarAction, setCopiedToolbarAction] = useState(null);
   const [showDecodedView, setShowDecodedView] = useState(false);
   const [showMarkdownRaw, setShowMarkdownRaw] = useState(false);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [debouncedTagSuggestionQuery, setDebouncedTagSuggestionQuery] = useState('');
   const [backendUserTags, setBackendUserTags] = useState([]);
@@ -238,6 +241,7 @@ function PreviewPanel() {
 
   useEffect(() => {
     setShowDecodedView(false);
+    setIsPreviewExpanded(false);
   }, [item?.id]);
   const openButtonTitle = (item.type_ === 'file' || textOpenablePaths.length > 0) ? t('item.openFile') : t('item.openLink');
   const previewTypeClass = item.code_language ? 'type-code' : `type-${item.type_ || 'text'}`;
@@ -748,6 +752,30 @@ function PreviewPanel() {
       );
     }
 
+    const isContentTooLong = isContentOverRenderThreshold(contentToDisplay);
+    const safeContentToRender = (!isContentTooLong || isPreviewExpanded)
+      ? contentToDisplay
+      : getRenderTruncatedContent(contentToDisplay);
+
+    const renderTruncationNotice = () => {
+      if (!isContentTooLong) return null;
+      const sizeKb = (contentToDisplay.length / 1024).toFixed(1);
+      return (
+        <div className="preview-truncated-banner">
+          <span className="preview-truncated-tip">
+            {t('item.contentTooLongCollapsed', { size: sizeKb })}
+          </span>
+          <button
+            type="button"
+            className="preview-expand-btn"
+            onClick={() => setIsPreviewExpanded((prev) => !prev)}
+          >
+            {isPreviewExpanded ? t('item.collapseContent') : t('item.expandFullContent')}
+          </button>
+        </div>
+      );
+    };
+
     const isMarkdownText = Boolean(
       item.type_ !== 'image' &&
       item.type_ !== 'file' &&
@@ -871,9 +899,10 @@ function PreviewPanel() {
             tabIndex={0}
             title={t('item.doubleClickToCopy')}
           >
-            <Suspense fallback={<div className="preview-text-content">{contentToDisplay}</div>}>
-              <CodeBlock code={contentToDisplay} language={item.code_language} maxLines={200} />
+            <Suspense fallback={<div className="preview-text-content">{safeContentToRender}</div>}>
+              <CodeBlock code={safeContentToRender} language={item.code_language} maxLines={isPreviewExpanded ? 500 : 200} />
             </Suspense>
+            {renderTruncationNotice()}
           </div>
         </div>
       );
@@ -1009,8 +1038,9 @@ function PreviewPanel() {
           tabIndex={0}
           title={item.type_ === 'file' ? t('item.doubleClickToOpen') : t('item.doubleClickToCopy')}
         >
-          {getContentPreview(contentToDisplay)}
+          {getContentPreview(safeContentToRender)}
         </div>
+        {renderTruncationNotice()}
         {translation && (
           <div className="preview-translation-card" style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>

@@ -795,10 +795,27 @@ impl ClipboardManager {
                 ClipboardItem::new_text(text.clone(), metadata)
             }
             ClipboardContent::Image(data) => {
-                println!("Image clipboard content detected, saving...");
+                println!("Image clipboard content detected, checking dedupe...");
 
-                // Build a stable hash from image bytes for deduplication.
-                let image_hash = blake3::hash(&data).to_hex().to_string();
+                // Build a stable hash from decoded image raw RGBA bytes for deduplication.
+                let image_hash = ClipboardItem::calculate_image_hash(&data);
+
+                // Early check: if duplicate collapse is enabled and an item with this hash exists,
+                // touch the existing item directly without saving duplicate files to disk.
+                if general_config.collapse_duplicate_items_enabled {
+                    let repo_lock = repo.lock().await;
+                    if let Ok(Some(existing)) = repo_lock.find_by_hash(&image_hash).await {
+                        println!(
+                            "[ImageDedupe] Duplicate image detected (hash={}), moving to top: {}",
+                            &image_hash, existing.id
+                        );
+                        let _ = repo_lock.touch(&existing.id).await;
+                        drop(repo_lock);
+                        let _ = app_handle.emit("clipboard-changed", ());
+                        return Ok(());
+                    }
+                    drop(repo_lock);
+                }
 
                 // Generate unique filename
                 let timestamp = std::time::SystemTime::now()
@@ -837,7 +854,7 @@ impl ClipboardManager {
                     type_: "image".to_string(),
                     content: Some(format!("[Image: {}]", filename)),
                     original_content: None,
-                    content_hash: image_hash, // Use image content hash for deduplication.
+                    content_hash: image_hash, // Use stable RGBA content hash for deduplication.
                     image_paths: Some(image_paths_json),
                     ocr_text: None,
                     code_language: None,
@@ -921,7 +938,13 @@ impl ClipboardManager {
         );
 
         let repo_lock = repo.lock().await;
-        if let Some(existing) = repo_lock.find_by_hash(&content_hash).await? {
+        let existing_opt = if general_config.collapse_duplicate_items_enabled {
+            repo_lock.find_by_hash(&content_hash).await?
+        } else {
+            None
+        };
+
+        if let Some(existing) = existing_opt {
             if transition.suppress_rollback_duplicate {
                 println!(
                     "[ClipboardRollback] Suppressed short rollback duplicate for existing item: {}",
@@ -2783,7 +2806,7 @@ impl ClipboardManager {
             type_: "image".to_string(),
             content: Some(format!("[Image: {}]", filename)),
             original_content: None,
-            content_hash: blake3::hash(&normalized_png).to_hex().to_string(),
+            content_hash: ClipboardItem::calculate_image_hash(&normalized_png),
             image_paths: Some(image_paths_json),
             ocr_text: None,
             code_language: None,

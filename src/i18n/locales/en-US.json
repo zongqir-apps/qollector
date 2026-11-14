@@ -301,7 +301,10 @@
     "sendingEmail": "Sending...",
     "sentToEmailToast": "Sent to {{email}} successfully!",
     "sendEmailFailed": "Email send failed: {{error}}",
-    "emailNotConfigured": "Sender email not configured. Please enable it in Settings."
+    "emailNotConfigured": "Sender email not configured. Please enable it in Settings.",
+    "contentTooLongCollapsed": "Content is very long ({{size}} KB), collapsed for performance",
+    "expandFullContent": "Expand Full Content",
+    "collapseContent": "Collapse Content"
   },
   "feedback": {
     "channel": {
@@ -490,6 +493,8 @@
       "filterNoiseDigitsHint": "Automatically ignore 1-2 char routine snippets (keeps special symbols) and 3-6 digit verification codes to reduce history clutter",
       "ignoreSensitiveClipboard": "Ignore sensitive password manager clipboard",
       "ignoreSensitiveClipboardHint": "Automatically detect and skip passwords and 2FA tokens copied from 1Password, Bitwarden, KeePass, etc., preventing sensitive credentials from being recorded",
+      "collapseDuplicateItems": "Collapse consecutive duplicates & touch to top",
+      "collapseDuplicateItemsHint": "When identical content or image pixels appear consecutively, refresh the last updated time and move to top instead of duplicating cards",
       "autostart": "Launch at system startup",
       "autostartHint": "Automatically run Qollect when your system starts",
       "textChunkSplitter": "Text Chunk Splitter",

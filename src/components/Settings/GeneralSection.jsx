@@ -478,6 +478,30 @@ function GeneralSection({
         </label>
         <label className="setting-toggle-row">
           <span className="toggle-label-group">
+            <span className="toggle-label">{t('settings.general.collapseDuplicateItems')}</span>
+            <span className="toggle-desc">{t('settings.general.collapseDuplicateItemsHint')}</span>
+          </span>
+          <span className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={generalConfig.collapse_duplicate_items_enabled !== false}
+              onChange={async (e) => {
+                const checked = e.target.checked;
+                const updated = { ...generalConfig, collapse_duplicate_items_enabled: checked };
+                setGeneralConfig(updated);
+                useAppStore.setState({ collapseDuplicateItemsEnabled: checked });
+                try {
+                  await invoke('update_general_config', { config: updated });
+                } catch (error) {
+                  console.error('save collapse_duplicate_items config failed:', error);
+                }
+              }}
+            />
+            <span className="toggle-slider" />
+          </span>
+        </label>
+        <label className="setting-toggle-row">
+          <span className="toggle-label-group">
             <span className="toggle-label">{t('settings.general.autostart')}</span>
             <span className="toggle-desc">{t('settings.general.autostartHint')}</span>
           </span>

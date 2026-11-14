@@ -194,7 +194,7 @@ pub async fn add_clipboard_item_manual(
             item.image_paths = Some(image_paths_json);
 
             if dedupe_by_hash.unwrap_or(false) {
-                item.content_hash = blake3::hash(&image_data).to_hex().to_string();
+                item.content_hash = ClipboardItem::calculate_image_hash(&image_data);
             }
 
             item
@@ -279,7 +279,7 @@ pub async fn add_image_file(
     item.image_paths = Some(image_paths_json);
 
     if dedupe_by_hash.unwrap_or(false) {
-        item.content_hash = blake3::hash(&image_data).to_hex().to_string();
+        item.content_hash = ClipboardItem::calculate_image_hash(&image_data);
         let effective_id = manager
             .insert_item_dedup_touch(&item)
             .await
