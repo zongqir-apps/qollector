@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.7",
+      "publishedAt": "2026-11-14",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-7",
+      "summary": {
+        "zh-CN": "新增物理顺序死锁模式（Freeze Order Mode），彻底解决置顶面板连续粘贴多字段时卡片意外置顶跳移痛点，配合 Alt+L 快捷键、独立锁图标与醒目状态胶囊保障 100% 几何稳定性。",
+        "en-US": "Introduced Physical Order Lock Mode to completely eliminate layout shifts and accidental top-bumping during sequential multi-field pasting, featuring an Alt+L shortcut, dedicated TitleBar lock toggle, and persistent visual status capsule."
+      },
+      "highlights": {
+        "zh-CN": [
+          "物理顺序死锁模式（Freeze Order Mode）：在标题栏引入显式锁定切换按钮（Lock/Unlock），并绑定全局与窗口级快捷键 Alt+L（macOS 为 Option+L），一键在“自由重排”与“物理顺序死锁”之间无缝切换。",
+          "点击与连续粘贴绝对几何静止：锁定状态下点击或自动粘贴卡片时，前端彻底拦截 mergeUniqueById 时间重排，仅在卡片内部触发微反馈打勾，卡片在 DOM 中的物理索引与屏幕绝对坐标纹丝不动。",
+          "Rust 后端短路防抖（skip_touch）：向 copy_item 底层注入 skip_touch 参数，锁定时直接绕过数据库 touch() 操作，不改动 SQLite updated_at 时间戳，根除窗口重新聚焦导致的迟发性跳排。",
+          "醒目视觉横幅与防呆生命周期：锁定激活时，在历史流顶端滑出专属紧凑胶囊条提示，支持单机任意位置一键解除锁定；采用会话级内存管理，窗口彻底退出重启后自动复原为未锁定状态，兼顾高频效率与防遗忘安全。"
+        ],
+        "en-US": [
+          "Physical Order Lock Mode: Added a dedicated lock/unlock toggle in TitleBar and registered global/window shortcut Alt+L (Option+L on macOS) to seamlessly switch between fluid sorting and frozen layout.",
+          "Absolute Geometric Stability on Click/Paste: While locked, copying or auto-pasting cards completely halts mergeUniqueById re-sorting, ensuring cards remain at their exact screen coordinates and DOM positions without shifting under cursor.",
+          "Rust Backend Short-Circuit (skip_touch): Injected skip_touch parameter into copy_item commands, bypassing database touch() calls and freezing SQLite updated_at timestamps to eliminate delayed jumps upon window focus.",
+          "Prominent In-Stream Capsule & Fail-Safe Lifecycle: Displayed a dedicated frosted lock capsule banner above history stream with one-click unlock; backed by session-scoped state that resets upon application restart to prevent accidental long-term lockouts."
+        ]
+      }
+    },
+    {
       "version": "0.7.6",
       "publishedAt": "2026-11-14",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-6",
