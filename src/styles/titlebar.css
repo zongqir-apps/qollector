@@ -445,20 +445,6 @@
   color: var(--state-error-fg);
 }
 
-.titlebar-btn.order-lock-btn:hover {
-  background: color-mix(in srgb, var(--accent-light) 82%, transparent);
-  color: var(--accent-color);
-}
-
-.titlebar-btn.order-lock-btn.active {
-  color: var(--state-warning-fg);
-  background: color-mix(in srgb, var(--state-warning-bg) 94%, transparent);
-}
-
-.titlebar-btn.order-lock-btn.active:hover {
-  background: color-mix(in srgb, var(--state-warning-bg) 100%, transparent);
-}
-
 .titlebar-btn.pin-btn:hover {
   background: color-mix(in srgb, var(--state-warning-bg) 82%, transparent);
   color: var(--state-warning-fg);

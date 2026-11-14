@@ -8,8 +8,6 @@ import {
   SquareSquare,
   X,
   Pin,
-  Lock,
-  Unlock,
   Expand,
   Minimize2,
 } from 'lucide-react';
@@ -40,7 +38,6 @@ function TitleBar({
 }) {
   const { t } = useTranslation();
   const panelMode = useAppStore(s => s.panelMode);
-  const isOrderLocked = useAppStore(s => s.isOrderLocked);
   const toggleOrderLocked = useAppStore(s => s.toggleOrderLocked);
 
   const [glassOpacity, setGlassOpacity] = useState(() => {
@@ -237,13 +234,6 @@ function TitleBar({
         <span className="titlebar-btn-divider" aria-hidden="true" />
 
         <div className="titlebar-btn-group titlebar-btn-group-window">
-          <button
-            onClick={toggleOrderLocked}
-            className={`titlebar-btn order-lock-btn ${isOrderLocked ? 'active' : ''}`}
-            title={isOrderLocked ? t('titlebar.unlockOrder') : t('titlebar.lockOrder')}
-          >
-            {isOrderLocked ? <Lock size={14} /> : <Unlock size={14} />}
-          </button>
           <button
             onClick={onToggleAlwaysOnTop}
             className={`titlebar-btn pin-btn ${isAlwaysOnTop ? 'active' : ''}`}
