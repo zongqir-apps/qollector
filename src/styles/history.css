@@ -2286,11 +2286,6 @@
   white-space: nowrap;
 }
 
-.order-locked-banner-icon {
-  flex-shrink: 0;
-  color: var(--state-warning-fg);
-}
-
 .order-locked-banner-action {
   font-size: 10.5px;
   text-decoration: underline;

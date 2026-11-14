@@ -1223,6 +1223,8 @@
     "backToTop": "Back to latest",
     "orderLockedBanner": "Physical order locked · No jumping on click or paste",
     "unlockNow": "Unlock now",
+    "orderLockedToast": "List physical order locked (Alt+L to unlock)",
+    "orderUnlockedToast": "List regular sorting restored",
     "autoCleanupNoticeEnabled": "Auto-clean active: keep {{days}} days or {{items}} items",
     "autoCleanupNoticeDisabled": "Auto-clean is off. You can enable a short retention window in Settings.",
     "autoCleanupAdjust": "Adjust in Settings",

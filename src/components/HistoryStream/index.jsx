@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useCallback, useState, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, Lock } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { Virtuoso } from 'react-virtuoso';
 import { invoke } from '@tauri-apps/api/core';
 import useAppStore from '../../store/useAppStore';
@@ -1905,7 +1905,6 @@ function HistoryStream({ style }) {
           }}
         >
           <div className="order-locked-banner-text">
-            <Lock size={12} className="order-locked-banner-icon" />
             <span>{t('history.orderLockedBanner')}</span>
           </div>
           <span className="order-locked-banner-action">{t('history.unlockNow')}</span>

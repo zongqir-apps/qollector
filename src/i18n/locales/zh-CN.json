@@ -1197,6 +1197,8 @@
     "backToTop": "回到最新",
     "orderLockedBanner": "物理顺序已死锁 · 点击与粘贴绝不跳移",
     "unlockNow": "点击解除",
+    "orderLockedToast": "已锁定物理列表顺序 (Alt+L 解除)",
+    "orderUnlockedToast": "已恢复列表常规排序",
     "autoCleanupNoticeEnabled": "当前自动清理：保留 {{days}} 天或 {{items}} 条",
     "autoCleanupNoticeDisabled": "当前未开启自动清理，可在设置中启用短周期保留",
     "autoCleanupAdjust": "去设置调整",

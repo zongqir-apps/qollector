@@ -1023,6 +1023,21 @@ function App() {
     showAppFeedback(t('editModal.savedToast'), 'success', 1200);
   }, [showAppFeedback, t]);
 
+  const isOrderLocked = useAppStore(s => s.isOrderLocked);
+  const prevOrderLockedRef = useRef(isOrderLocked);
+  useEffect(() => {
+    if (prevOrderLockedRef.current !== isOrderLocked) {
+      prevOrderLockedRef.current = isOrderLocked;
+      showAppFeedback(
+        isOrderLocked
+          ? t('history.orderLockedToast')
+          : t('history.orderUnlockedToast'),
+        'info',
+        1400
+      );
+    }
+  }, [isOrderLocked, showAppFeedback, t]);
+
   useEffect(() => {
     if (!initialWindowModeReady || isMiniMode) return undefined;
 
