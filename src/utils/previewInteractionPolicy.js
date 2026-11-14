@@ -19,6 +19,8 @@ export const INTERACTIVE_SUB_ELEMENT_SELECTOR = [
   '.panel-card-action-btn',
   '.compact-card-action-btn',
   '.compact-card-select-toggle',
+  '.compact-card-text',
+  '.compact-card-note',
 ].join(', ');
 
 export const shouldIgnoreLongPressTarget = (target) => {

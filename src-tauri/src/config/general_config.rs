@@ -79,6 +79,13 @@ pub struct GeneralConfig {
     /// Enable text chunk splitter for bastion/VDI environments with clipboard limits.
     #[serde(default)]
     pub text_chunk_splitter_enabled: bool,
+    /// Ignore sensitive clipboard entries from password managers (1Password, Bitwarden, KeePassXC).
+    #[serde(default = "default_ignore_sensitive_clipboard_enabled")]
+    pub ignore_sensitive_clipboard_enabled: bool,
+}
+
+fn default_ignore_sensitive_clipboard_enabled() -> bool {
+    true
 }
 
 fn default_copy_on_select_smart_replace_enabled() -> bool {
@@ -177,6 +184,7 @@ impl Default for GeneralConfig {
             copy_on_select_smart_replace_enabled: default_copy_on_select_smart_replace_enabled(),
             filter_noise_digits_enabled: default_filter_noise_digits_enabled(),
             text_chunk_splitter_enabled: false,
+            ignore_sensitive_clipboard_enabled: default_ignore_sensitive_clipboard_enabled(),
         }
     }
 }

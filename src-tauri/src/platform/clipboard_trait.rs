@@ -22,6 +22,10 @@ pub trait PlatformClipboard: Send + Sync {
     fn get_active_window_info(&self) -> Result<WindowMetadata, ClipboardError>;
 
     async fn clear(&self) -> Result<(), ClipboardError>;
+
+    fn is_sensitive_content(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

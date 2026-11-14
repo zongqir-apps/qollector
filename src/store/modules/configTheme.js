@@ -40,6 +40,7 @@ export const createLoadConfigsAction = ({
       copyOnSelectSmartReplaceEnabled: generalConfig?.copy_on_select_smart_replace_enabled !== false,
       copyQollectSourceItems: Boolean(generalConfig?.copy_qollect_source_items),
       filterNoiseDigitsEnabled: generalConfig?.filter_noise_digits_enabled !== false,
+      ignoreSensitiveClipboardEnabled: generalConfig?.ignore_sensitive_clipboard_enabled !== false,
       historyTagShortcutEnabled: generalConfig?.history_tag_shortcut_enabled !== false,
       autoCleanupEnabled: generalConfig?.auto_cleanup_enabled !== false,
       cleanupMaxItems: Math.max(100, Number(generalConfig?.cleanup_max_items || 50000)),

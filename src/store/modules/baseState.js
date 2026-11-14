@@ -90,6 +90,7 @@ export const createBaseState = ({
   copyOnSelectSmartReplaceEnabled: true,
   copyQollectSourceItems: false,
   filterNoiseDigitsEnabled: true,
+  ignoreSensitiveClipboardEnabled: true,
   lastCopyWasAutoPaste: false,
   historyTagShortcutEnabled: true,
   autoCleanupEnabled: true,

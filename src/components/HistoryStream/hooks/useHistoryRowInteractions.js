@@ -70,6 +70,11 @@ export default function useHistoryRowInteractions({
     e.stopPropagation();
     if (typeof index !== 'number' || index < 0 || index >= filteredItems.length) return;
 
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) {
+      return;
+    }
+
     if (e.shiftKey) {
       e.preventDefault();
       const anchorCandidate = selectionAnchorIndexRef.current >= 0

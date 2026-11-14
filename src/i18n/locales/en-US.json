@@ -488,6 +488,8 @@
       "copyQollectSourceItemsHint": "Off by default. When off, copy actions skip items sourced from Qollect / Quick Input / Quick Note.",
       "filterNoiseDigits": "Filter micro-noise & noisy digits",
       "filterNoiseDigitsHint": "Automatically ignore 1-2 char routine snippets (keeps special symbols) and 3-6 digit verification codes to reduce history clutter",
+      "ignoreSensitiveClipboard": "Ignore sensitive password manager clipboard",
+      "ignoreSensitiveClipboardHint": "Automatically detect and skip passwords and 2FA tokens copied from 1Password, Bitwarden, KeePass, etc., preventing sensitive credentials from being recorded",
       "autostart": "Launch at system startup",
       "autostartHint": "Automatically run Qollect when your system starts",
       "textChunkSplitter": "Text Chunk Splitter",

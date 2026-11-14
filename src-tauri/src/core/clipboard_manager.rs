@@ -648,6 +648,13 @@ impl ClipboardManager {
             return Ok(());
         }
 
+        if general_config.ignore_sensitive_clipboard_enabled && _platform.is_sensitive_content() {
+            println!(
+                "[Clipboard] Skip capture: sensitive content format detected (password manager)"
+            );
+            return Ok(());
+        }
+
         let effective_content = match &content {
             ClipboardContent::Text { plain: text, raw_formats } => {
                 if let Some((session_id, index, total, payload)) = parse_qollect_chunk_frame(text) {

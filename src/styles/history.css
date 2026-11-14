@@ -1321,8 +1321,9 @@
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   letter-spacing: 0.004em;
-  user-select: none;
-  -webkit-user-select: none;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .compact-card-link {
@@ -1494,8 +1495,9 @@
   overflow: hidden;
   white-space: pre-wrap;
   word-break: break-word;
-  user-select: none;
-  -webkit-user-select: none;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .compact-card-alias-header {

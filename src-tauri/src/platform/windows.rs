@@ -324,9 +324,35 @@ pub mod windows {
             }
             Ok(())
         }
+
+        fn is_sensitive_content(&self) -> bool {
+            Self::is_sensitive_ignore_format_present()
+        }
     }
 
     impl WindowsClipboard {
+        /// Sniff if password managers (Bitwarden, 1Password, KeePassXC) have tagged the clipboard with ignore formats
+        fn is_sensitive_ignore_format_present() -> bool {
+            use std::ffi::OsStr;
+            use std::os::windows::ffi::OsStrExt;
+
+            const SENSITIVE_FORMAT_NAMES: &[&str] = &[
+                "Clipboard Viewer Ignore",
+                "ExcludeClipboardContentFromMonitor",
+            ];
+
+            unsafe {
+                for fmt_name in SENSITIVE_FORMAT_NAMES {
+                    let wide: Vec<u16> = OsStr::new(fmt_name).encode_wide().chain(Some(0)).collect();
+                    let fmt = RegisterClipboardFormatW(windows::core::PCWSTR(wide.as_ptr()));
+                    if fmt != 0 && IsClipboardFormatAvailable(fmt).is_ok() {
+                        return true;
+                    }
+                }
+            }
+
+            false
+        }
         fn get_clipboard_content_sync() -> Result<ClipboardContent, ClipboardError> {
             use arboard::Clipboard;
 

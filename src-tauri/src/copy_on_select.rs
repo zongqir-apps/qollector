@@ -41,17 +41,48 @@ mod windows_impl {
     use parking_lot::Mutex;
     use std::sync::LazyLock;
     use std::time::{Duration, Instant};
-    use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::Foundation::{CloseHandle, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::System::Threading::{
+        AttachThreadInput, GetCurrentThreadId, OpenProcess, QueryFullProcessImageNameW,
+        PROCESS_NAME_WIN32, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
+    };
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetAsyncKeyState, GetDoubleClickTime, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD,
+        GetAsyncKeyState, GetDoubleClickTime, GetFocus, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD,
         KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN,
     };
     use windows::Win32::UI::WindowsAndMessaging::{
-        CallNextHookEx, DispatchMessageW, GetForegroundWindow, GetMessageW, GetSystemMetrics,
-        GetWindowThreadProcessId, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx, HHOOK,
-        KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, SM_CXDOUBLECLK, SM_CYDOUBLECLK, WH_KEYBOARD_LL,
-        WH_MOUSE_LL, WM_KEYDOWN, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_SYSKEYDOWN,
+        CallNextHookEx, DispatchMessageW, GetClassNameW, GetForegroundWindow, GetMessageW,
+        GetSystemMetrics, GetWindowThreadProcessId, SendMessageW, SetWindowsHookExW,
+        TranslateMessage, UnhookWindowsHookEx, HHOOK, KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT,
+        SM_CXDOUBLECLK, SM_CYDOUBLECLK, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_COPY, WM_KEYDOWN,
+        WM_LBUTTONDOWN, WM_LBUTTONUP, WM_SYSKEYDOWN,
     };
+
+    const EXCLUDED_PROCESS_NAMES: &[&str] = &[
+        // Windows Console & Terminals (already have native copy-on-select; avoid SIGINT)
+        "windowsterminal.exe",
+        "cmd.exe",
+        "powershell.exe",
+        "pwsh.exe",
+        "mintty.exe",
+        "alacritty.exe",
+        "wezterm-gui.exe",
+        "conhost.exe",
+        "putty.exe",
+        "kitty.exe",
+        "mobaxterm.exe",
+        "xshell.exe",
+        "securecrt.exe",
+        "tabby.exe",
+        "warp.exe",
+        "hyper.exe",
+        "terminus.exe",
+        // Remote desktop & virtualization tools
+        "mstsc.exe",
+        "teamviewer.exe",
+        "anydesk.exe",
+        "vncviewer.exe",
+    ];
 
     static COPY_ON_SELECT_STATE: LazyLock<Mutex<Option<Arc<CopyOnSelectState>>>> =
         LazyLock::new(|| Mutex::new(None));
@@ -91,6 +122,159 @@ mod windows_impl {
         })
     });
 
+    fn get_process_exe_name(process_id: u32) -> Option<String> {
+        use windows::core::PWSTR;
+
+        unsafe {
+            let handle = OpenProcess(
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                false,
+                process_id,
+            )
+            .ok()?;
+
+            let mut name = vec![0u16; 260];
+            let mut size = name.len() as u32;
+            let pwstr = PWSTR(name.as_mut_ptr());
+
+            let res = QueryFullProcessImageNameW(handle, PROCESS_NAME_WIN32, pwstr, &mut size);
+            let _ = CloseHandle(handle);
+
+            if res.is_ok() {
+                let full_path = String::from_utf16_lossy(&name[..size as usize]);
+                let exe_name = full_path
+                    .rsplit(['\\', '/'])
+                    .next()
+                    .unwrap_or(&full_path)
+                    .to_lowercase();
+                Some(exe_name)
+            } else {
+                None
+            }
+        }
+    }
+
+    fn is_excluded_context() -> bool {
+        unsafe {
+            // 1. Check modifier keys (Ctrl, Alt, Win)
+            let is_ctrl = (GetAsyncKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0;
+            let is_alt = (GetAsyncKeyState(VK_MENU.0 as i32) as u16 & 0x8000) != 0;
+            let is_win = ((GetAsyncKeyState(VK_LWIN.0 as i32) as u16 & 0x8000) != 0)
+                || ((GetAsyncKeyState(VK_RWIN.0 as i32) as u16 & 0x8000) != 0);
+
+            if is_ctrl || is_alt || is_win {
+                return true;
+            }
+
+            // 2. Check foreground window
+            let hwnd = GetForegroundWindow();
+            if hwnd.is_invalid() {
+                return true;
+            }
+
+            let mut pid = 0;
+            GetWindowThreadProcessId(hwnd, Some(&mut pid));
+            if pid == 0 || pid == std::process::id() {
+                return true;
+            }
+
+            // 3. Check excluded process blacklist (terminals, remote desktops)
+            if let Some(exe_name) = get_process_exe_name(pid) {
+                if EXCLUDED_PROCESS_NAMES.iter().any(|&item| item == exe_name) {
+                    return true;
+                }
+            }
+
+            false
+        }
+    }
+
+    fn send_atomic_ctrl_c() {
+        const VK_C_KEY: u16 = 0x43;
+        const SCAN_CTRL: u16 = 0x1D;
+        const SCAN_C: u16 = 0x2E;
+
+        fn key_input(vk: u16, scan: u16, key_up: bool) -> INPUT {
+            let flags = if key_up {
+                KEYEVENTF_KEYUP
+            } else {
+                Default::default()
+            };
+
+            INPUT {
+                r#type: INPUT_KEYBOARD,
+                Anonymous: INPUT_0 {
+                    ki: KEYBDINPUT {
+                        wVk: VIRTUAL_KEY(vk),
+                        wScan: scan,
+                        dwFlags: flags,
+                        time: 0,
+                        dwExtraInfo: 0,
+                    },
+                },
+            }
+        }
+
+        // Submits all 4 events atomically in a single system call
+        // No thread sleep between Ctrl-Down and C-Down, eliminating IME/queue modifier drop!
+        let inputs = [
+            key_input(VK_CONTROL.0, SCAN_CTRL, false),
+            key_input(VK_C_KEY, SCAN_C, false),
+            key_input(VK_C_KEY, SCAN_C, true),
+            key_input(VK_CONTROL.0, SCAN_CTRL, true),
+        ];
+
+        unsafe {
+            let _ = SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
+        }
+    }
+
+    fn execute_copy(target_hwnd: HWND) {
+        unsafe {
+            let target_tid = GetWindowThreadProcessId(target_hwnd, None);
+            let our_tid = GetCurrentThreadId();
+
+            let mut attached = false;
+            let mut focused_hwnd = target_hwnd;
+
+            if our_tid != target_tid && target_tid != 0 {
+                if AttachThreadInput(our_tid, target_tid, true).as_bool() {
+                    attached = true;
+                    let focus = GetFocus();
+                    if !focus.is_invalid() {
+                        focused_hwnd = focus;
+                    }
+                }
+            }
+
+            let mut class_name = [0u16; 64];
+            let len = GetClassNameW(focused_hwnd, &mut class_name);
+            let name = if len > 0 {
+                String::from_utf16_lossy(&class_name[..len as usize])
+            } else {
+                String::new()
+            };
+            let class_lower = name.to_lowercase();
+
+            // Native Win32 edit controls (Scintilla in Notepad++, standard Edit, RichEdit)
+            // support WM_COPY directly without emitting ANY synthetic keystrokes.
+            // This 100% guarantees no 'c' character injection into the active document.
+            let is_native_editor_control = class_lower.contains("scintilla")
+                || class_lower == "edit"
+                || class_lower.contains("richedit");
+
+            if is_native_editor_control {
+                let _ = SendMessageW(focused_hwnd, WM_COPY, WPARAM(0), LPARAM(0));
+            } else {
+                send_atomic_ctrl_c();
+            }
+
+            if attached {
+                let _ = AttachThreadInput(our_tid, target_tid, false);
+            }
+        }
+    }
+
     unsafe extern "system" fn mouse_hook_proc(
         n_code: i32,
         w_param: WPARAM,
@@ -127,11 +311,11 @@ mod windows_impl {
                                 tracker.last_up_pt = pt;
                                 tracker.last_up_time = now;
 
-                                // 1. Check drag distance: >= 5px
+                                // 1. Check drag distance: >= 12px (144 distance squared to filter out click jitter)
                                 let dx = pt.0 - down_pt.0;
                                 let dy = pt.1 - down_pt.1;
                                 let drag_dist_sq = dx * dx + dy * dy;
-                                let is_drag = drag_dist_sq >= 25; // 5px threshold
+                                let is_drag = drag_dist_sq >= 144; // 12px threshold
 
                                 // 2. Check double click (word selection)
                                 let dbl_click_enabled = state.is_double_click_enabled();
@@ -159,10 +343,13 @@ mod windows_impl {
                                     if !is_excluded_context() {
                                         tracker.last_trigger_time = now;
                                         let is_smart_replace = state.is_smart_replace_enabled();
-                                        // Spawn a lightweight task to delay-send Ctrl+C so host app settles selection
+                                        // Spawn a lightweight task to delay-send copy so host app settles selection
                                         std::thread::spawn(move || {
                                             let target_hwnd = unsafe { GetForegroundWindow() };
-                                            // Capture previous clipboard text before injecting Ctrl+C
+                                            if target_hwnd.is_invalid() {
+                                                return;
+                                            }
+                                            // Capture previous clipboard text before copy
                                             let preserved_text = if is_smart_replace {
                                                 arboard::Clipboard::new()
                                                     .ok()
@@ -172,8 +359,9 @@ mod windows_impl {
                                             };
 
                                             std::thread::sleep(Duration::from_millis(80));
-                                            if !is_excluded_context() {
-                                                send_ctrl_c();
+                                            let current_fg = unsafe { GetForegroundWindow() };
+                                            if current_fg == target_hwnd && !is_excluded_context() {
+                                                execute_copy(target_hwnd);
 
                                                 if is_smart_replace {
                                                     if let Some(old_text) = preserved_text {
@@ -216,79 +404,6 @@ mod windows_impl {
         }
 
         CallNextHookEx(HHOOK::default(), n_code, w_param, l_param)
-    }
-
-    fn is_excluded_context() -> bool {
-        unsafe {
-            // Check modifier keys (Ctrl, Alt, Win)
-            let is_ctrl = (GetAsyncKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0;
-            let is_alt = (GetAsyncKeyState(VK_MENU.0 as i32) as u16 & 0x8000) != 0;
-            let is_win = ((GetAsyncKeyState(VK_LWIN.0 as i32) as u16 & 0x8000) != 0)
-                || ((GetAsyncKeyState(VK_RWIN.0 as i32) as u16 & 0x8000) != 0);
-
-            if is_ctrl || is_alt || is_win {
-                return true;
-            }
-
-            // Check if active foreground window is Qollect itself
-            let hwnd = GetForegroundWindow();
-            if !hwnd.is_invalid() {
-                let mut pid = 0;
-                GetWindowThreadProcessId(hwnd, Some(&mut pid));
-                if pid == std::process::id() {
-                    return true;
-                }
-            }
-
-            false
-        }
-    }
-
-    fn send_key_event(vk: u16, scan: u16, key_up: bool) {
-        let flags = if key_up {
-            KEYEVENTF_KEYUP
-        } else {
-            Default::default()
-        };
-
-        let input = INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: VIRTUAL_KEY(vk),
-                    wScan: scan,
-                    dwFlags: flags,
-                    time: 0,
-                    dwExtraInfo: 0,
-                },
-            },
-        };
-
-        unsafe {
-            let _ = SendInput(&[input], std::mem::size_of::<INPUT>() as i32);
-        }
-    }
-
-    fn send_ctrl_c() {
-        const VK_C_KEY: u16 = 0x43;
-        const SCAN_CTRL: u16 = 0x1D;
-        const SCAN_C: u16 = 0x2E;
-
-        // 1. Press Ctrl down
-        send_key_event(VK_CONTROL.0, SCAN_CTRL, false);
-        // Small delay to allow the active window and IME (TSF) to register the modifier state
-        std::thread::sleep(Duration::from_millis(15));
-
-        // 2. Press C down
-        send_key_event(VK_C_KEY, SCAN_C, false);
-        std::thread::sleep(Duration::from_millis(15));
-
-        // 3. Release C up
-        send_key_event(VK_C_KEY, SCAN_C, true);
-        std::thread::sleep(Duration::from_millis(15));
-
-        // 4. Release Ctrl up
-        send_key_event(VK_CONTROL.0, SCAN_CTRL, true);
     }
 
     unsafe extern "system" fn keyboard_hook_proc(
