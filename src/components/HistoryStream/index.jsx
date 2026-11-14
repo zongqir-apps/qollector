@@ -22,6 +22,7 @@ import { buildSearchRequest } from '../../utils/searchRequestBuilder';
 import { getUserTags, searchItems } from '../../services/clipboardService';
 import { sendClipboardItemViaEmail } from '../../services/emailRelayService';
 import { getAiRetrievalFromMetadata } from '../../utils/filenameNaming';
+import { getTransformRule } from '../../utils/transforms/index.js';
 import PinyinMatch from 'pinyin-match';
 
 const MEMORY_PROBE_PREFIX = '[MemoryProbe]';
@@ -859,6 +860,26 @@ function HistoryStream({ style }) {
         }
       }
 
+      if (typeof actionKey === 'string' && actionKey.startsWith('transform:')) {
+        const transformId = actionKey.slice('transform:'.length);
+        const rule = getTransformRule(transformId);
+        if (rule && currentItem?.content) {
+          const transformed = rule.apply(currentItem.content, {
+            language: i18n?.language,
+            code_language: currentItem.code_language,
+          });
+          if (typeof transformed === 'string' && transformed.length > 0) {
+            await handleCopyPlainText(transformed, contextCopySource);
+            showQuickAddFeedback({
+              type: 'success',
+              message: t(rule.labelKey),
+            }, 1500);
+          }
+        }
+        closeContextMenu();
+        return;
+      }
+
       switch (actionKey) {
         case 'copy':
           await handleCopy(currentItem, contextCopySource);
@@ -978,6 +999,7 @@ function HistoryStream({ style }) {
     showQuickAddFeedback,
     openEditModal,
     t,
+    i18n?.language,
     handleOpenItem,
     handleRevealInFolder,
     deleteItem,

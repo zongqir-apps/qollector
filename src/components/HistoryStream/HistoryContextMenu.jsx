@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {
   CheckSquare,
   ClipboardPaste,
@@ -14,6 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { resolveMatchingTransforms } from '../../utils/transforms/index.js';
 
 const MENU_WIDTH = 220;
 const VIEWPORT_PADDING = 8;
@@ -63,12 +65,23 @@ function HistoryContextMenu({
   emailRelayEnabled = false,
   onAction,
 }) {
+  const { i18n } = useTranslation();
   const item = state?.item;
   const isMulti = Boolean(state?.isMulti);
   const menuScope = state?.scope || 'history';
   const isCollectionScope = menuScope === 'collection';
   const confirmDeleteFor = state?.confirmDeleteFor || null;
   const modifierKey = getModifierKeyLabel();
+
+  const activeTransforms = useMemo(() => {
+    if (!item?.content || isMulti || (item.type_ !== 'text' && item.type_ !== 'code' && !item.code_language)) {
+      return [];
+    }
+    return resolveMatchingTransforms(item.content, {
+      language: i18n?.language,
+      code_language: item.code_language,
+    });
+  }, [item?.content, item?.type_, item?.code_language, isMulti, i18n?.language]);
 
   const entries = useMemo(() => {
     if (!item) return [];
@@ -118,6 +131,13 @@ function HistoryContextMenu({
         : null,
     ];
 
+    const transformEntries = activeTransforms.slice(0, 4).map((rule) => ({
+      key: `transform:${rule.id}`,
+      label: t(rule.labelKey),
+      icon: rule.icon,
+      secondary: true,
+    }));
+
     const openEntries = [
       { key: 'tag', label: t('item.tagManagement'), icon: Tag, shortcut: 'T' },
       { key: 'editNote', label: t('item.editNote'), icon: Pencil },
@@ -141,12 +161,13 @@ function HistoryContextMenu({
 
     return normalizeMenuEntries([
       ...commonEntries,
+      ...(transformEntries.length > 0 ? [{ type: 'separator' }, ...transformEntries] : []),
       { type: 'separator' },
       ...openEntries,
       { type: 'separator' },
       deleteEntry,
     ]);
-  }, [item, isMulti, confirmDeleteFor, modifierKey, t, enableQuickPaste, emailRelayEnabled]);
+  }, [item, isMulti, confirmDeleteFor, modifierKey, t, enableQuickPaste, emailRelayEnabled, activeTransforms]);
 
   const position = useMemo(() => {
     if (!item || typeof window === 'undefined') {
