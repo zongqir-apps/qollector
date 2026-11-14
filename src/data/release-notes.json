@@ -2,6 +2,31 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.6",
+      "publishedAt": "2026-11-14",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-6",
+      "summary": {
+        "zh-CN": "彻底根治划选复制意外打字覆写顽疾，筑牢密码管理器敏感忽略安全防线，引入原始像素矩阵去重与时间刷新置顶，并落地大文本 50KB 前端渲染降级门禁。",
+        "en-US": "Completely resolved accidental character overwrite in copy-on-select, integrated password manager sensitive clipboard exclusion, introduced raw pixel matrix deduplication with touch-to-top, and enforced a 50KB rendering truncation gate for massive text blocks."
+      },
+      "highlights": {
+        "zh-CN": [
+          "划选复制稳定性根治：增加终端进程黑名单彻底杜绝 SIGINT 中断退出；引入 Win32 原生 Scintilla 与 Edit 控件 WM_COPY 消息直发，0 物理按键模拟，彻底终结打出字符 C 覆盖选中文字的顽疾；采用 4 按键原子 SendInput 消除输入法竞争，提升拖拽判定阈值至 12px 过滤微手抖。",
+          "密码管理器敏感数据防泄露：自动嗅探 Clipboard Viewer Ignore 与 ExcludeClipboardContentFromMonitor 标记，1Password、Bitwarden、KeePass 等密码凭据正常使用但绝不落盘持久化，提供前端独立配置开关。",
+          "卡片局部划选与右键文本清洗工具链：卡片文本解除限制支持任意片段自由划选；卡片右键菜单动态暴露 0ms 纯文本清洗工具链（合并硬换行、格式化 JSON、净化 URL 参数等），一键清洗并写入剪贴板。",
+          "图片原始像素矩阵去重与时间更新置顶：建立基于原始 RGBA 像素矩阵的统一 Blake3 哈希，跨截图、浏览器复制与本地图片实现 100% 确定性去重；落盘前短路查库，彻底消灭孤儿图片垃圾落盘；新增“连续重复项折叠与更新置顶”开关。",
+          "大文本 50KB 渲染降级门禁：在历史流卡片与预览面板硬性加入 50KB 截断门禁，超长文本默认渲染前 2000 字符，配合毛玻璃胶囊折叠横条与按需展开，彻底杜绝超大 SQL Dump / 日志造成的 DOM 重排卡死与语法高亮主线程冻结。"
+        ],
+        "en-US": [
+          "Rock-Solid Copy-on-Select: Added terminal process exclusion to prevent SIGINT crashes; introduced native Win32 WM_COPY messaging for Scintilla and Edit controls with 0 simulated keystrokes, completely eradicating accidental 'C' overwrites; utilized atomic 4-event SendInput arrays and raised drag threshold to 12px.",
+          "Password Manager Sensitive Data Exclusion: Automatically sniffs Clipboard Viewer Ignore and ExcludeClipboardContentFromMonitor flags, seamlessly passing passwords and 2FA tokens through system clipboard while strictly preventing SQLite persistence.",
+          "Partial Card Text Selection & 0ms Text Transform Menu: Allowed free partial text selection on history cards with drag conflict immunity; dynamically exposed 0ms instant text transforms (unwrap hard linebreaks, prettify JSON, sanitize URLs) directly in card context menus.",
+          "Raw Pixel Matrix Image Deduplication & Touch-to-Top: Unified Blake3 image hashing across containers using decoded RGBA pixel matrices, eliminating duplicate cards across screenshots, browser copies, and local files; short-circuited database lookup before disk write to prevent orphan file accumulation.",
+          "50KB Frontend Rendering Truncation Gate: Enforced a 50KB render gate in history stream cards and preview panels, truncating massive text blocks to 2000 characters by default with frosted capsule expand bars, safeguarding 60fps frame rate against giant SQL dumps or log files."
+        ]
+      }
+    },
+    {
       "version": "0.7.5",
       "publishedAt": "2026-11-08",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-5",

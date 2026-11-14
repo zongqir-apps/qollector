@@ -2242,6 +2242,6 @@
 .compact-card-expand-btn:hover,
 .preview-expand-btn:hover {
   background: var(--primary-color);
-  color: #fff;
+  color: var(--text-on-accent);
   border-color: var(--primary-color);
 }
