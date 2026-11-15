@@ -24,6 +24,8 @@ export default function useHistoryKeyboardNavigation({
   searchInputId = 'history-search-input',
   onSearchArrowDownNoResults,
   onQuickTag,
+  onQuickNote,
+  onToggleFavorites,
 }) {
   const moveFocusedSelection = useCallback((dir) => {
     const total = filteredItems.length;
@@ -182,6 +184,26 @@ export default function useHistoryKeyboardNavigation({
         }
       }
 
+      if (e.key === 'F2') {
+        const focusedItem = focusedIndex >= 0 && focusedIndex < filteredItems.length
+          ? filteredItems[focusedIndex]
+          : null;
+        if (focusedItem && onQuickNote) {
+          e.preventDefault();
+          onQuickNote(focusedItem);
+          return;
+        }
+      }
+
+      if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (onToggleFavorites) {
+          e.preventDefault();
+          onToggleFavorites();
+          focusSearchInput();
+          return;
+        }
+      }
+
       if (selectedItemIds.length === 0 && focusedIndex < 0) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -217,6 +239,9 @@ export default function useHistoryKeyboardNavigation({
     historyGrouping,
     selectionAnchorIndexRef,
     virtuosoRef,
+    onQuickTag,
+    onQuickNote,
+    onToggleFavorites,
   ]);
 
   return {

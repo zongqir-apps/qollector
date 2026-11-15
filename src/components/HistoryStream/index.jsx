@@ -9,6 +9,7 @@ import CollectionBoard from '../CollectionBoard';
 import HistoryVirtualRow from './HistoryVirtualRow';
 import HistoryContextMenu from './HistoryContextMenu';
 import QuickTagPopover from '../shared/QuickTagPopover';
+import QuickNotePopover from '../shared/QuickNotePopover';
 import MultiSelectBar from './MultiSelectBar';
 import useHistoryEmptyDiagnostic from './hooks/useHistoryEmptyDiagnostic';
 import useHistoryBatchActions from './hooks/useHistoryBatchActions';
@@ -381,8 +382,10 @@ function HistoryStream({ style }) {
   const addTagToItem = useAppStore(s => s.addTagToItem);
   const removeTagFromItem = useAppStore(s => s.removeTagFromItem);
   const updateItemTags = useAppStore(s => s.updateItemTags);
+  const updateItemNote = useAppStore(s => s.updateItemNote);
   const addTagToSelectedItems = useAppStore(s => s.addTagToSelectedItems);
   const [quickTagPopoverState, setQuickTagPopoverState] = useState(null);
+  const [quickNotePopoverState, setQuickNotePopoverState] = useState(null);
   const deleteSelectedItems = useAppStore(s => s.deleteSelectedItems);
   const copySelectedItemsMerged = useAppStore(s => s.copySelectedItemsMerged);
   const mergeSelectedItemsToNote = useAppStore(s => s.mergeSelectedItemsToNote);
@@ -825,6 +828,36 @@ function HistoryStream({ style }) {
     setQuickTagPopoverState({ item: targetItem, anchorPosition: computedAnchor });
   }, [closeContextMenu]);
 
+  const handleOpenQuickNote = useCallback((targetItem, anchorPosition = null) => {
+    if (!targetItem?.id) return;
+    closeContextMenu();
+    let computedAnchor = anchorPosition;
+    if (!computedAnchor && typeof document !== 'undefined') {
+      const el = document.querySelector(`[data-item-id="${targetItem.id}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        computedAnchor = {
+          top: rect.top,
+          left: rect.left,
+          bottom: rect.bottom,
+          right: rect.right,
+          width: rect.width,
+          height: rect.height,
+        };
+      }
+    }
+    setQuickNotePopoverState({ item: targetItem, anchorPosition: computedAnchor });
+  }, [closeContextMenu]);
+
+  const handleSaveQuickNote = useCallback(async (item, note) => {
+    if (!item?.id) return;
+    await updateItemNote(item, note);
+  }, [updateItemNote]);
+
+  const handleToggleFavoritesOnly = useCallback(() => {
+    setShowFavoritesOnly(!showFavoritesOnly);
+  }, [setShowFavoritesOnly, showFavoritesOnly]);
+
   const handleCardContextMenu = useCallback((item, index, event, scope = 'history') => {
     openContextMenu(item, index, event, scope);
   }, [openContextMenu]);
@@ -935,7 +968,7 @@ function HistoryStream({ style }) {
           closeContextMenu();
           return;
         case 'editNote':
-          openEditModal(currentItem, { initialFocus: 'note' });
+          handleOpenQuickNote(currentItem, { x: contextMenuState.x, y: contextMenuState.y });
           closeContextMenu();
           return;
         case 'editContent':
@@ -1450,6 +1483,8 @@ function HistoryStream({ style }) {
     virtuosoRef,
     onSearchArrowDownNoResults: focusAddFromSearchButton,
     onQuickTag: handleOpenQuickTag,
+    onQuickNote: handleOpenQuickNote,
+    onToggleFavorites: handleToggleFavoritesOnly,
   });
 
   const rowGap = isMiniMode ? 2 : 4;
@@ -1583,10 +1618,6 @@ function HistoryStream({ style }) {
     handleCardClick,
     handleCardDoubleClick,
   ]);
-
-  const handleToggleFavoritesOnly = useCallback(() => {
-    setShowFavoritesOnly(!showFavoritesOnly);
-  }, [setShowFavoritesOnly, showFavoritesOnly]);
 
   const handleClearSelectedTags = useCallback(() => {
     setSelectedTags([]);
@@ -1958,6 +1989,7 @@ function HistoryStream({ style }) {
             onOpenContextMenu={handleCardContextMenu}
             onVisibleItemsChange={setCollectionVisibleItems}
             onAddTagToItem={addTagToItem}
+            onOpenQuickNote={handleOpenQuickNote}
             onCopy={handleCopy}
             onCopyAndAutoPaste={handleCopyAndAutoPaste}
             onSetSelectedItemIds={setSelectedItemIds}
@@ -2109,6 +2141,16 @@ function HistoryStream({ style }) {
           onUpdateTags={updateItemTags}
           onAddTag={addTagToItem}
           onRemoveTag={removeTagFromItem}
+        />
+      )}
+
+      {quickNotePopoverState && (
+        <QuickNotePopover
+          item={quickNotePopoverState.item}
+          anchorPosition={quickNotePopoverState.anchorPosition}
+          isMiniMode={isMiniMode}
+          onClose={() => setQuickNotePopoverState(null)}
+          onSaveNote={handleSaveQuickNote}
         />
       )}
 

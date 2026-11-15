@@ -1,0 +1,147 @@
+.quick-note-popover-portal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.quick-note-popover {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px var(--shadow-overlay), 0 2px 8px var(--shadow-md);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  user-select: none;
+  animation: quickNoteFadeIn var(--motion-fast) var(--ease-standard);
+  box-sizing: border-box;
+}
+
+@keyframes quickNoteFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.quick-note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quick-note-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.quick-note-icon {
+  color: var(--accent-color);
+}
+
+.quick-note-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+
+.quick-note-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.quick-note-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 3px 6px;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+
+.quick-note-input-row:focus-within {
+  border-color: var(--accent-color);
+}
+
+.quick-note-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  padding: 2px 0;
+}
+
+.quick-note-input::placeholder {
+  color: var(--text-muted);
+}
+
+.quick-note-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-note-clear-btn:hover {
+  color: var(--text-primary);
+}
+
+.quick-note-confirm-btn {
+  background: var(--accent-color);
+  border: none;
+  color: var(--text-on-accent);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.quick-note-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quick-note-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.quick-note-shortcut-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}

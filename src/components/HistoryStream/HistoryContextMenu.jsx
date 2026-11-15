@@ -140,7 +140,7 @@ function HistoryContextMenu({
 
     const openEntries = [
       { key: 'tag', label: t('item.tagManagement'), icon: Tag, shortcut: 'T' },
-      { key: 'editNote', label: t('item.editNote'), icon: Pencil },
+      { key: 'editNote', label: t('item.editNote'), icon: Pencil, shortcut: 'F2' },
       canEditContent ? { key: 'editContent', label: t('item.editContent'), icon: FileText } : null,
       emailRelayEnabled ? { key: 'sendToEmail', label: t('item.sendToEmailBtn'), icon: Mail } : null,
       { key: 'share', label: t('share.title'), icon: Share2 },

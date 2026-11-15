@@ -388,6 +388,14 @@ function SearchBar({
   const handleSearchInputKeyDown = useCallback((event) => {
     if (event.nativeEvent?.isComposing || event.isComposing) return;
 
+    if (event.key === 'Tab' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      if (!normalizedSearchQuery) {
+        event.preventDefault();
+        onToggleFavorites?.();
+        return;
+      }
+    }
+
     if (canShowRecentSearches) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
@@ -428,7 +436,9 @@ function SearchBar({
     canShowRecentSearches,
     closeRecentSearches,
     normalizedRecentSearches,
+    normalizedSearchQuery,
     onSearchKeyDown,
+    onToggleFavorites,
     showRecentSearches,
   ]);
 

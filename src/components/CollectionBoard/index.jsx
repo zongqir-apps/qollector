@@ -171,6 +171,7 @@ function CollectionBoard({
   onOpenContextMenu,
   onVisibleItemsChange,
   onAddTagToItem,
+  onOpenQuickNote,
   onCopy,
   onCopyAndAutoPaste,
   onSetSelectedItemIds,
@@ -976,6 +977,20 @@ function CollectionBoard({
       onOpenPreview?.(item);
       return;
     }
+    if (event.key === 'F2') {
+      event.preventDefault();
+      const rect = event.currentTarget?.getBoundingClientRect?.();
+      const anchorPosition = rect ? {
+        top: rect.top,
+        left: rect.left,
+        bottom: rect.bottom,
+        right: rect.right,
+        width: rect.width,
+        height: rect.height,
+      } : null;
+      onOpenQuickNote?.(item, anchorPosition);
+      return;
+    }
     if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
       event.preventDefault();
       handleOpenContextMenuFromKeyboard(item, index, event);
@@ -987,6 +1002,7 @@ function CollectionBoard({
     onCopy,
     onCopyAndAutoPaste,
     onOpenPreview,
+    onOpenQuickNote,
   ]);
 
   useEffect(() => (
@@ -1237,6 +1253,7 @@ function CollectionBoard({
     return (
       <article
         ref={(node) => setCollectionCardRef(item.id, node)}
+        data-item-id={item.id}
         className={`
           collection-card
           panel-card-shell
