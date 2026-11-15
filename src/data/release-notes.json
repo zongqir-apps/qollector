@@ -2,6 +2,31 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.9",
+      "publishedAt": "2026-11-15",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-9",
+      "summary": {
+        "zh-CN": "全面打通历史流全场景 F2 盲操编辑、消除弹窗几何悬空与动画撕扯缺陷、实现关闭后搜索框焦点无缝归还，并支持卡片别名胶囊直点交互。",
+        "en-US": "Unlocked full F2 shortcut support across History Stream, eradicated popover floating gaps and CSS animation jitter with snug positioning, enabled auto focus restoration on dismiss, and added direct click interactions for alias tags."
+      },
+      "highlights": {
+        "zh-CN": [
+          "历史流搜索框态与浏览态 F2 全覆盖：彻底修复搜索框聚焦时输入事件对 F2 的阻断短路缺陷，无论光标位于搜索框打字、卡片列表方向键浏览还是鼠标聚焦卡片，随时按下 F2 均能毫秒级定位目标卡片呼出快速编辑。",
+          "弹窗物理定位容器与动画解耦：将快速备注彻底重构为外层 positioner 与内层 card 分离架构，根除 CSS 关键帧 transform 强行覆写内联定位导致的弹窗瞬移抽搐。",
+          "严丝合缝的卡片紧密贴合几何算法：重构视口碰撞翻转计算，彻底消灭旧版向上翻转减去 170px 造成的 80px 悬空虚空，实现上下翻转均保持与卡片 6px 的紧凑间距，并针对历史流整行卡片智能内缩 8px 对齐内容。",
+          "零延迟即时聚焦与关闭自动归还焦点：改用 requestAnimationFrame 单帧对齐即时聚焦与文本全选；弹窗回车保存、Esc 取消或失焦关闭后，光标瞬间无缝归还给搜索框末尾，保障键盘盲操心流连贯。",
+          "卡片别名胶囊直点编辑：历史流与收藏看板中的别名与备注标签均增设 pointer 悬停高亮与单击事件，鼠标轻点别名胶囊亦可直接就地呼出快速备注编辑。"
+        ],
+        "en-US": [
+          "Full History Stream F2 Shortcut Coverage: Fixed the input event blocking bug in SearchBar, enabling instant F2 note editing regardless of whether focus is inside the search box, in the card list, or on a clicked item.",
+          "Decoupled Positioning and CSS Card Animation: Restructured the quick note popover into separate positioner and card elements, completely eliminating transform keyframe overrides that caused awkward screen shifts.",
+          "Snug Adaptive Card Anchoring: Rebuilt boundary flip logic to eliminate the 80px gap caused by hardcoded offsets, ensuring consistent 6px spacing both above and below cards with an 8px inset alignment.",
+          "Instant Focus & Zero-Friction Flow Retention: Switched to requestAnimationFrame for instant text selection without flicker; automatically restores keyboard focus to the search input upon popover dismissal.",
+          "Direct Click on Alias Pills: Added cursor pointers and click listeners to alias/note badges across both History Stream and Collection Board for 1-click in-place editing."
+        ]
+      }
+    },
+    {
       "version": "0.7.8",
       "publishedAt": "2026-11-15",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-8",
