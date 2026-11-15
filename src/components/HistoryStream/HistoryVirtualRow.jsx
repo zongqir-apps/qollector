@@ -24,6 +24,7 @@ function HistoryVirtualRow({
   onTagClick,
   onToggleMultiSelect,
   supportsNativeExternalDrag,
+  onOpenQuickNote,
 }) {
   return (
     <div
@@ -68,6 +69,7 @@ function HistoryVirtualRow({
         onTagClick={onTagClick}
         onToggleMultiSelect={() => onToggleMultiSelect?.(item, index)}
         onDoubleClick={(e) => onCardDoubleClick(item, e)}
+        onOpenQuickNote={onOpenQuickNote}
       />
     </div>
   );

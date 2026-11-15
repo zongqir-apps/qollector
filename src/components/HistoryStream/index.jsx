@@ -835,6 +835,7 @@ function HistoryStream({ style }) {
     if (!computedAnchor && typeof document !== 'undefined') {
       const el = document.querySelector(`[data-item-id="${targetItem.id}"]`);
       if (el) {
+        el.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
         const rect = el.getBoundingClientRect();
         computedAnchor = {
           top: rect.top,
@@ -848,6 +849,14 @@ function HistoryStream({ style }) {
     }
     setQuickNotePopoverState({ item: targetItem, anchorPosition: computedAnchor });
   }, [closeContextMenu]);
+
+  const handleCloseQuickNote = useCallback(() => {
+    setQuickNotePopoverState(null);
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }, []);
 
   const handleSaveQuickNote = useCallback(async (item, note) => {
     if (!item?.id) return;
@@ -1586,6 +1595,7 @@ function HistoryStream({ style }) {
     onTagClick: handleTagClick,
     onToggleMultiSelect: handleToggleMultiSelect,
     onCardContextMenu: handleCardContextMenu,
+    onOpenQuickNote: handleOpenQuickNote,
   }), [
     rowGap,
     copiedItemId,
@@ -1599,6 +1609,7 @@ function HistoryStream({ style }) {
     handleTagClick,
     handleToggleMultiSelect,
     handleCardContextMenu,
+    handleOpenQuickNote,
   ]);
 
   const renderVirtualRow = useCallback((index) => {
@@ -2149,7 +2160,7 @@ function HistoryStream({ style }) {
           item={quickNotePopoverState.item}
           anchorPosition={quickNotePopoverState.anchorPosition}
           isMiniMode={isMiniMode}
-          onClose={() => setQuickNotePopoverState(null)}
+          onClose={handleCloseQuickNote}
           onSaveNote={handleSaveQuickNote}
         />
       )}

@@ -96,6 +96,7 @@ function CompactCard({
   onTagClick,
   onToggleMultiSelect,
   onDoubleClick,
+  onOpenQuickNote,
 }) {
   const { t, i18n } = useTranslation();
   const isMiniMode = useAppStore(s => s.isMiniMode);
@@ -663,7 +664,14 @@ function CompactCard({
           </div>
         )}
         {userNote && (
-          <div className="compact-card-alias-header panel-card-alias-header" title={userNote}>
+          <div
+            className="compact-card-alias-header panel-card-alias-header"
+            title={`${userNote} (${t('item.editNote')} F2)`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenQuickNote?.(item);
+            }}
+          >
             <span className="compact-card-alias-tag">{userNote}</span>
           </div>
         )}

@@ -119,6 +119,7 @@ export default function useHistoryRowInteractions({
     }
 
     selectionAnchorIndexRef.current = index;
+    setFocusedIndex(index);
     if (clickTimerRef.current) {
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;

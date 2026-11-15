@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { Pencil, X, Check } from 'lucide-react';
 import '../../styles/quick-note-popover.css';
 
-const POPOVER_WIDTH = 290;
-const VIEWPORT_PADDING = 10;
+const POPOVER_WIDTH = 320;
+const POPOVER_HEIGHT = 104;
+const VIEWPORT_PADDING = 12;
+const GAP = 6;
 
 function QuickNotePopover({
   item,
@@ -21,13 +23,13 @@ function QuickNotePopover({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const frame = requestAnimationFrame(() => {
       if (inputRef.current) {
         inputRef.current.focus();
         inputRef.current.select();
       }
-    }, 50);
-    return () => clearTimeout(timer);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const handleSaveAndClose = useCallback(async () => {
@@ -66,59 +68,87 @@ function QuickNotePopover({
     return () => window.removeEventListener('pointerdown', handleClickOutside, true);
   }, [onClose]);
 
-  const popoverPositionStyle = useMemo(() => {
-    if (typeof window === 'undefined') return {};
+  const { positionStyle, placement } = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return { positionStyle: {}, placement: 'bottom' };
+    }
     const winWidth = window.innerWidth || 800;
     const winHeight = window.innerHeight || 600;
 
     if (isMiniMode || winWidth <= 420) {
       return {
-        position: 'fixed',
-        bottom: `${VIEWPORT_PADDING}px`,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: `calc(100vw - ${VIEWPORT_PADDING * 2}px)`,
-        maxWidth: `${POPOVER_WIDTH + 20}px`,
-        zIndex: 9999,
+        positionStyle: {
+          position: 'fixed',
+          bottom: `${VIEWPORT_PADDING}px`,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: `calc(100vw - ${VIEWPORT_PADDING * 2}px)`,
+          maxWidth: `${POPOVER_WIDTH}px`,
+          zIndex: 9999,
+        },
+        placement: 'bottom',
       };
     }
 
     if (!anchorPosition) {
       return {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: `${POPOVER_WIDTH}px`,
-        zIndex: 9999,
+        positionStyle: {
+          position: 'fixed',
+          top: `${Math.round((winHeight - POPOVER_HEIGHT) / 2)}px`,
+          left: `${Math.round((winWidth - POPOVER_WIDTH) / 2)}px`,
+          width: `${POPOVER_WIDTH}px`,
+          zIndex: 9999,
+        },
+        placement: 'bottom',
       };
     }
 
     let top = 0;
     let left = 0;
+    let currentPlacement = 'bottom';
 
     if ('bottom' in anchorPosition && typeof anchorPosition.bottom === 'number') {
-      top = anchorPosition.bottom + 6;
-      left = anchorPosition.left;
-      if (top + 160 > winHeight) {
-        top = Math.max(VIEWPORT_PADDING, (anchorPosition.top || 100) - 170);
+      const spaceBelow = winHeight - (anchorPosition.bottom + GAP);
+      const spaceAbove = (anchorPosition.top || 0) - GAP;
+
+      if (spaceBelow >= POPOVER_HEIGHT + VIEWPORT_PADDING || spaceBelow >= spaceAbove) {
+        top = anchorPosition.bottom + GAP;
+        currentPlacement = 'bottom';
+      } else {
+        top = Math.max(VIEWPORT_PADDING, (anchorPosition.top || 0) - POPOVER_HEIGHT - GAP);
+        currentPlacement = 'top';
       }
+
+      const cardLeft = typeof anchorPosition.left === 'number' ? anchorPosition.left : 0;
+      left = cardLeft + 8;
     } else {
-      top = (anchorPosition.y || 100) + 8;
-      left = (anchorPosition.x || 100) - 40;
-      if (top + 160 > winHeight) {
-        top = Math.max(VIEWPORT_PADDING, winHeight - 170);
+      const anchorY = typeof anchorPosition.y === 'number' ? anchorPosition.y : 100;
+      const spaceBelow = winHeight - (anchorY + GAP);
+      const spaceAbove = anchorY - GAP;
+
+      if (spaceBelow >= POPOVER_HEIGHT + VIEWPORT_PADDING || spaceBelow >= spaceAbove) {
+        top = anchorY + GAP;
+        currentPlacement = 'bottom';
+      } else {
+        top = Math.max(VIEWPORT_PADDING, anchorY - POPOVER_HEIGHT - GAP);
+        currentPlacement = 'top';
       }
+
+      const anchorX = typeof anchorPosition.x === 'number' ? anchorPosition.x : 100;
+      left = anchorX - 24;
     }
 
     left = Math.max(VIEWPORT_PADDING, Math.min(left, winWidth - POPOVER_WIDTH - VIEWPORT_PADDING));
 
     return {
-      position: 'fixed',
-      top: `${top}px`,
-      left: `${left}px`,
-      width: `${POPOVER_WIDTH}px`,
-      zIndex: 9999,
+      positionStyle: {
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${POPOVER_WIDTH}px`,
+        zIndex: 9999,
+      },
+      placement: currentPlacement,
     };
   }, [anchorPosition, isMiniMode]);
 
@@ -133,68 +163,72 @@ function QuickNotePopover({
     >
       <div
         ref={popoverRef}
-        className="quick-note-popover"
-        style={popoverPositionStyle}
-        role="dialog"
-        aria-label={t('item.editNote')}
+        className={`quick-note-positioner placement-${placement}`}
+        style={positionStyle}
       >
-        <div className="quick-note-header">
-          <div className="quick-note-title">
-            <Pencil size={13} className="quick-note-icon" />
-            <span>{t('item.editNote')}</span>
-          </div>
-          <button
-            type="button"
-            className="quick-note-close-btn"
-            onClick={onClose}
-            aria-label={t('common.cancel')}
-            title={t('common.cancel')}
-          >
-            <X size={13} />
-          </button>
-        </div>
-
-        <div className="quick-note-input-row">
-          <input
-            ref={inputRef}
-            type="text"
-            className="quick-note-input"
-            value={noteInput}
-            onChange={(e) => setNoteInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('edit.notePlaceholder')}
-            maxLength={60}
-            disabled={busy}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          {noteInput && (
+        <div
+          className="quick-note-card"
+          role="dialog"
+          aria-label={t('item.editNote')}
+        >
+          <div className="quick-note-header">
+            <div className="quick-note-title">
+              <Pencil size={13} className="quick-note-icon" />
+              <span>{t('item.editNote')}</span>
+            </div>
             <button
               type="button"
-              className="quick-note-clear-btn"
-              onClick={() => setNoteInput('')}
-              title={t('common.clear')}
-              aria-label={t('common.clear')}
+              className="quick-note-close-btn"
+              onClick={onClose}
+              aria-label={t('common.cancel')}
+              title={t('common.cancel')}
             >
-              <X size={11} />
+              <X size={13} />
             </button>
-          )}
-          <button
-            type="button"
-            className="quick-note-confirm-btn"
-            onClick={() => void handleSaveAndClose()}
-            disabled={busy}
-            title={`${t('common.save')} (Enter)`}
-            aria-label={`${t('common.save')} (Enter)`}
-          >
-            <Check size={13} />
-          </button>
-        </div>
+          </div>
 
-        <div className="quick-note-footer">
-          <span className="quick-note-shortcut-hint">
-            Enter {t('common.save')} · Esc {t('common.cancel')}
-          </span>
+          <div className="quick-note-input-row">
+            <input
+              ref={inputRef}
+              type="text"
+              className="quick-note-input"
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t('edit.notePlaceholder')}
+              maxLength={60}
+              disabled={busy}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {noteInput && (
+              <button
+                type="button"
+                className="quick-note-clear-btn"
+                onClick={() => setNoteInput('')}
+                title={t('common.clear')}
+                aria-label={t('common.clear')}
+              >
+                <X size={11} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="quick-note-confirm-btn"
+              onClick={() => void handleSaveAndClose()}
+              disabled={busy}
+              title={`${t('common.save')} (Enter)`}
+              aria-label={`${t('common.save')} (Enter)`}
+            >
+              <Check size={13} />
+            </button>
+          </div>
+
+          <div className="quick-note-footer">
+            <span className="quick-note-shortcut-hint">
+              Enter {t('common.save')} · Esc {t('common.cancel')}
+            </span>
+          </div>
         </div>
       </div>
     </div>,
@@ -203,3 +237,4 @@ function QuickNotePopover({
 }
 
 export default memo(QuickNotePopover);
+

@@ -77,6 +77,17 @@ export default function useHistoryKeyboardNavigation({
       return;
     }
 
+    if (e.key === 'F2') {
+      e.preventDefault();
+      const targetItem = (focusedIndex >= 0 && focusedIndex < filteredItems.length)
+        ? filteredItems[focusedIndex]
+        : (filteredItems.length > 0 ? filteredItems[0] : null);
+      if (targetItem && onQuickNote) {
+        onQuickNote(targetItem);
+      }
+      return;
+    }
+
     if (e.key === 'Enter') {
       if (submitFocusedSelection()) {
         e.preventDefault();
@@ -92,7 +103,16 @@ export default function useHistoryKeyboardNavigation({
         }
       }
     }
-  }, [filteredItems.length, moveFocusedSelection, onSearchArrowDownNoResults, submitFocusedSelection]);
+  }, [
+    filteredItems,
+    focusedIndex,
+    handleCopy,
+    handleCopyAndAutoPaste,
+    moveFocusedSelection,
+    onQuickNote,
+    onSearchArrowDownNoResults,
+    submitFocusedSelection,
+  ]);
 
   const focusSearchInput = useCallback(() => {
     const input = document.getElementById(searchInputId);
@@ -185,9 +205,9 @@ export default function useHistoryKeyboardNavigation({
       }
 
       if (e.key === 'F2') {
-        const focusedItem = focusedIndex >= 0 && focusedIndex < filteredItems.length
+        const focusedItem = (focusedIndex >= 0 && focusedIndex < filteredItems.length)
           ? filteredItems[focusedIndex]
-          : null;
+          : (filteredItems.length > 0 ? filteredItems[0] : null);
         if (focusedItem && onQuickNote) {
           e.preventDefault();
           onQuickNote(focusedItem);

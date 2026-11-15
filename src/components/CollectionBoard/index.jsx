@@ -558,7 +558,14 @@ function CollectionBoard({
     return (
       <div className="collection-card-footer panel-card-footer">
         {userNote && (
-          <div className="collection-card-note panel-card-note" title={userNote}>
+          <div
+            className="collection-card-note panel-card-note"
+            title={`${userNote} (${t('item.editNote')} F2)`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenQuickNote?.(item);
+            }}
+          >
             {userNote}
           </div>
         )}
@@ -1225,7 +1232,14 @@ function CollectionBoard({
     return (
       <div className="collection-card-text panel-card-content-text">
         {userNote && (
-          <div className="compact-card-alias-header" title={userNote}>
+          <div
+            className="compact-card-alias-header"
+            title={`${userNote} (${t('item.editNote')} F2)`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenQuickNote?.(item);
+            }}
+          >
             <span className="compact-card-alias-tag">{userNote}</span>
           </div>
         )}
