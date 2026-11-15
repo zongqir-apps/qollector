@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.8",
+      "publishedAt": "2026-11-15",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-8",
+      "summary": {
+        "zh-CN": "深度激活收藏区资产效能：重构触碰置顶与高频自然沉淀、打通别名四级精准打分与首位回车秒贴、支持 Tab 无缝穿梭视图，并落地 F2 就地轻量备注入库浮层。",
+        "en-US": "Overhauled Collection & Alias UX: introduced usage-driven auto-promotion for favorites, 4-tier exact alias scoring with instant Enter paste, Tab-based zero-mouse view switching, and F2 in-place quick note popovers."
+      },
+      "highlights": {
+        "zh-CN": [
+          "收藏区使用频次自然自愈沉淀（touch 机制）：重构 SQLite 与前端内存中收藏项的排序演化逻辑，卡片在被取用、复制或自动粘贴时，原子重置 favorite_order 晋升首位并顺推后续项，高频常用资产自动浮动在收藏看板顶部。",
+          "别名与备注独立召回与四级精准打分：在 SQLite FTS 基础上开辟独立 user_note LIKE 召回链路，彻底解决无空格与短符号别名漏检；建立“精确命中 > 前缀命中 > 包含命中 > 普通模糊”四级打分体系，输入别名命中即置顶，按下 Enter 直接上屏。",
+          "零鼠标双向视图极速穿梭（Tab 盲操）：在搜索框处于空字符状态下，按下 Tab 键即时在「历史流」与「收藏看板」之间往返切换；在卡片列表键盘导航态下按 Tab 同样触发切换并将焦点自动吸附至搜索框，实现纯键盘无缝流转。",
+          "F2 就地轻量备注入库浮层（QuickNotePopover）：彻底废弃全屏阻断式 EditModal 大弹窗，支持在卡片聚焦态按 F2 或右键菜单直达就地单行输入浮层；具备视口碰撞检测与自动选中文本，Enter 毫秒级乐观落库，Esc 安全取消。"
+        ],
+        "en-US": [
+          "Usage-Driven Auto-Promotion for Favorites (Touch Mechanism): Re-engineered SQLite favorite_order updating upon item retrieval or pasting, automatically promoting frequently used cards to the top of Collection Board while sequentially pushing back preceding items.",
+          "Dedicated Note Recall & 4-Tier Exact Scoring: Introduced a specialized SQL LIKE pathway for user_note to eliminate tokenization misses on compact aliases; enforced a 4-tier ranker (Exact > Prefix > Substring > Fuzzy) ensuring exact aliases take the top slot and paste instantly via Enter.",
+          "Zero-Mouse Bidirectional View Hopping (Tab Shortcut): Pressing Tab in an empty search box instantly alternates between History Stream and Collection Board; pressing Tab while navigating cards also switches views and refocuses the search bar for continuous keyboard flow.",
+          "In-Place Quick Note Popover (F2 Shortcut): Replaced the heavyweight EditModal with a compact, single-line QuickNotePopover; press F2 or use the context menu on any card to edit aliases/notes with viewport boundary detection, Enter to save optimistically, and Esc to dismiss."
+        ]
+      }
+    },
+    {
       "version": "0.7.7",
       "publishedAt": "2026-11-14",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-7",
