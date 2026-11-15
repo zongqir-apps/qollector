@@ -2,6 +2,27 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.10",
+      "publishedAt": "2026-11-15",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-10",
+      "summary": {
+        "zh-CN": "彻底根除全局样式碰撞导致的弹窗大面积空白与文字截断缺陷、打通详情预览页（含 Mini 模式单栏）F2 备注编辑闭环，并实现物理卡片零间距贴合。",
+        "en-US": "Eradicated popover CSS class collisions that caused full-height blank gaps and truncated footer hints, unlocked global F2 shortcut support inside PreviewPanel (including single-pane Mini Mode), and tightened physical card bounding alignment."
+      },
+      "highlights": {
+        "zh-CN": [
+          "根除全局 CSS 类名污染：将轻量弹窗所有类名完整升级为 .quick-note-popover-* 隔离作用域，彻底摆脱全局 .quick-note-card 继承导致的 100vh 高度拉满大面积空白与 100vw 布局溢出，右侧快捷键“取消”提示完整呈现且带有舒适呼吸间距。",
+          "详情预览页与 Mini 模式打通 F2 闭环：修复在 Mini 模式下单击卡片进入单栏详情预览后 F2 快捷键失灵的断层问题，无论桌面端还是 Mini 模式，在预览页随时按 F2 即可直接展开并聚焦底部备注输入区，Ctrl+Enter 秒级落库。",
+          "卡片物理外框像素级对齐：历史流弹窗定位算法直接下探锚定 .compact-card 真实节点，彻底剥离虚拟列表行的 rowGap 底部外边距干扰；移除原生 scrollIntoView 规避视口错位，使弹窗上下紧密贴合卡片边缘。"
+        ],
+        "en-US": [
+          "Complete CSS Namespace Isolation: Fully namespaced popover classes under .quick-note-popover-*, eliminating global class inheritance that caused a full-screen 100vh blank gap and 100vw overflow; footer shortcut hints are now cleanly padded without truncating the Cancel button.",
+          "Unlocked F2 in PreviewPanel & Mini Mode: Fixed the dead F2 shortcut issue when drilling down into item details in single-pane Mini Mode; pressing F2 inside PreviewPanel now seamlessly activates and focuses the note textarea with Ctrl+Enter save support.",
+          "Pixel-Snug Physical Card Alignment: Refined History Stream anchor computation to target .compact-card directly, stripping out rowGap padding interference and removing native scrollIntoView to prevent layout displacement."
+        ]
+      }
+    },
+    {
       "version": "0.7.9",
       "publishedAt": "2026-11-15",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-9",
