@@ -75,8 +75,20 @@ export default function useHistoryKeyboardNavigation({
       return;
     }
 
-    if (e.key === 'Enter' && submitFocusedSelection()) {
-      e.preventDefault();
+    if (e.key === 'Enter') {
+      if (submitFocusedSelection()) {
+        e.preventDefault();
+        return;
+      }
+      if (filteredItems.length > 0) {
+        e.preventDefault();
+        const topItem = filteredItems[0];
+        if (topItem.type_ === 'image' || topItem.type_ === 'file') {
+          handleCopy(topItem, 'history');
+        } else {
+          handleCopyAndAutoPaste(topItem, 'history');
+        }
+      }
     }
   }, [filteredItems.length, moveFocusedSelection, onSearchArrowDownNoResults, submitFocusedSelection]);
 

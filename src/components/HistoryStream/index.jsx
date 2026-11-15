@@ -726,8 +726,20 @@ function HistoryStream({ style }) {
       }
 
       const combined = pinyinSupplemental.length > 0 ? [...baseItems, ...pinyinSupplemental] : [...baseItems];
-      // When searching, strictly prioritize matching favorites at the top for instant quick snippet usage
+      const getNoteScore = (item) => {
+        const note = (item?.user_note || '').trim().toLowerCase();
+        if (!note || !normalizedQuery) return 0;
+        if (note === normalizedQuery) return 3;
+        if (note.startsWith(normalizedQuery)) return 2;
+        if (note.includes(normalizedQuery)) return 1;
+        return 0;
+      };
+
+      // Prioritize exact/prefix note (alias) matches first, then favorites, then updated_at
       combined.sort((a, b) => {
+        const scoreA = getNoteScore(a);
+        const scoreB = getNoteScore(b);
+        if (scoreA !== scoreB) return scoreB - scoreA;
         const favA = a.is_favorite ? 1 : 0;
         const favB = b.is_favorite ? 1 : 0;
         if (favA !== favB) return favB - favA;
@@ -1406,8 +1418,17 @@ function HistoryStream({ style }) {
     switchToWorkbench,
   });
 
+  const activeNavigationItems = useMemo(
+    () => (
+      isCollectionMode
+        ? (collectionVisibleItems.length > 0 ? collectionVisibleItems : filteredItems)
+        : filteredItems
+    ),
+    [isCollectionMode, collectionVisibleItems, filteredItems],
+  );
+
   const { handleSearchInputKeyDown } = useHistoryKeyboardNavigation({
-    filteredItems,
+    filteredItems: activeNavigationItems,
     bulkSelectableItems: contextMenuItems,
     focusedIndex,
     setFocusedIndex,

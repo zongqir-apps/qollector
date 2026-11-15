@@ -1127,11 +1127,21 @@ impl ClipboardRepository {
             return Ok(vec![]);
         }
 
-        // When there's a query, merge FTS and tag LIKE results first.
+        // When there's a query, merge note/alias matches, FTS and tag LIKE results.
         if !query.is_empty() {
             let mut merged_items: Vec<ClipboardItem> = Vec::new();
             let mut seen_ids: HashSet<String> = HashSet::new();
 
+            // 1. Note / alias recall (highest precision)
+            if let Ok(note_results) = self.search_notes_like(query, filters, limit).await {
+                for item in note_results {
+                    if seen_ids.insert(item.id.clone()) {
+                        merged_items.push(item);
+                    }
+                }
+            }
+
+            // 2. Full-text search
             match self.search_fts(query, filters, limit).await {
                 Ok(results) => {
                     for item in results {
@@ -1145,22 +1155,39 @@ impl ClipboardRepository {
                 }
             }
 
-            // If FTS already filled the requested quota, skip extra recall query.
-            if merged_items.len() >= limit as usize {
-                merged_items.truncate(limit as usize);
-                return Ok(merged_items);
-            }
-
-            let tag_results = self.search_tags_like(query, filters, limit).await?;
-            for item in tag_results {
-                if seen_ids.insert(item.id.clone()) {
-                    merged_items.push(item);
+            // 3. Tag LIKE recall
+            if let Ok(tag_results) = self.search_tags_like(query, filters, limit).await {
+                for item in tag_results {
+                    if seen_ids.insert(item.id.clone()) {
+                        merged_items.push(item);
+                    }
                 }
             }
 
             if !merged_items.is_empty() {
-                // Keep favorites first for instant quick snippet recall
-                merged_items.sort_by(|a, b| b.is_favorite.cmp(&a.is_favorite));
+                let trimmed_query = query.trim();
+                let lower_query = trimmed_query.to_lowercase();
+                let score_item = |item: &ClipboardItem| -> (u8, u8, i64) {
+                    let note_score = if let Some(ref note) = item.user_note {
+                        let trimmed_note = note.trim();
+                        let lower_note = trimmed_note.to_lowercase();
+                        if !lower_query.is_empty() && lower_note == lower_query {
+                            3 // Exact alias/note match
+                        } else if !lower_query.is_empty() && lower_note.starts_with(&lower_query) {
+                            2 // Prefix alias/note match
+                        } else if !lower_query.is_empty() && lower_note.contains(&lower_query) {
+                            1 // Contains in note
+                        } else {
+                            0
+                        }
+                    } else {
+                        0
+                    };
+                    let fav_score = if item.is_favorite { 1 } else { 0 };
+                    (note_score, fav_score, item.updated_at)
+                };
+
+                merged_items.sort_by(|a, b| score_item(b).cmp(&score_item(a)));
                 merged_items.truncate(limit as usize);
                 return Ok(merged_items);
             }
@@ -1226,9 +1253,34 @@ impl ClipboardRepository {
         };
         sql.push_str(&format!("{}{}", order_clause, limit));
 
-        let items = sqlx::query_as::<_, ClipboardItem>(&sql)
+        let mut items = sqlx::query_as::<_, ClipboardItem>(&sql)
             .fetch_all(&self.pool)
             .await?;
+
+        if !query.is_empty() {
+            let trimmed_query = query.trim();
+            let lower_query = trimmed_query.to_lowercase();
+            let score_item = |item: &ClipboardItem| -> (u8, u8, i64) {
+                let note_score = if let Some(ref note) = item.user_note {
+                    let trimmed_note = note.trim();
+                    let lower_note = trimmed_note.to_lowercase();
+                    if !lower_query.is_empty() && lower_note == lower_query {
+                        3
+                    } else if !lower_query.is_empty() && lower_note.starts_with(&lower_query) {
+                        2
+                    } else if !lower_query.is_empty() && lower_note.contains(&lower_query) {
+                        1
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                };
+                let fav_score = if item.is_favorite { 1 } else { 0 };
+                (note_score, fav_score, item.updated_at)
+            };
+            items.sort_by(|a, b| score_item(b).cmp(&score_item(a)));
+        }
 
         Ok(items)
     }
@@ -1290,6 +1342,71 @@ impl ClipboardRepository {
         );
 
         sql.push_str(&format!(" AND LOWER(tags) LIKE '%{}%'", escaped_query));
+        sql.push_str(&format!(" ORDER BY is_favorite DESC, updated_at DESC LIMIT {}", limit));
+
+        let items = sqlx::query_as::<_, ClipboardItem>(&sql)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(items)
+    }
+
+    async fn search_notes_like(
+        &self,
+        query: &str,
+        filters: &SearchFilters,
+        limit: i32,
+    ) -> Result<Vec<ClipboardItem>, sqlx::Error> {
+        if query.is_empty() || limit <= 0 {
+            return Ok(vec![]);
+        }
+
+        let escaped_query = query.to_lowercase().replace('\'', "''");
+        let mut sql = format!(
+            "SELECT id, type,
+                    CASE
+                        WHEN content IS NOT NULL AND LENGTH(content) > {content_limit}
+                            THEN SUBSTR(content, 1, {content_limit})
+                        ELSE content
+                    END as content,
+                    '' as original_content, content_hash,
+                    image_paths,
+                    CASE
+                        WHEN ocr_text IS NOT NULL AND LENGTH(ocr_text) > {ocr_limit}
+                            THEN SUBSTR(ocr_text, 1, {ocr_limit})
+                        ELSE ocr_text
+                    END as ocr_text,
+                    code_language, NULL as embedding, tags, user_note,
+                    metadata, is_pinned, is_favorite, is_deleted,
+                    pinned_at, workbench_id, created_at, updated_at,
+                    EXISTS(SELECT 1 FROM clipboard_raw_formats WHERE item_id = clipboard_items.id) as has_raw_formats,
+                    CASE
+                        WHEN content IS NOT NULL AND LENGTH(content) > {content_limit}
+                            THEN 1 ELSE 0
+                    END as content_truncated,
+                    CASE
+                        WHEN ocr_text IS NOT NULL AND LENGTH(ocr_text) > {ocr_limit}
+                            THEN 1 ELSE 0
+                    END as ocr_truncated
+             FROM clipboard_items WHERE is_deleted = 0 AND user_note IS NOT NULL AND TRIM(user_note) != ''",
+            content_limit = LIGHT_CONTENT_PREVIEW_CHARS,
+            ocr_limit = LIGHT_OCR_PREVIEW_CHARS,
+        );
+
+        append_common_search_filters(
+            &mut sql,
+            filters,
+            "type",
+            "code_language",
+            "is_pinned",
+            "is_favorite",
+            "workbench_id",
+            "tags",
+            "metadata",
+            "created_at",
+        );
+
+        sql.push_str(&format!(" AND LOWER(user_note) LIKE '%{}%'", escaped_query));
         sql.push_str(&format!(" ORDER BY is_favorite DESC, updated_at DESC LIMIT {}", limit));
 
         let items = sqlx::query_as::<_, ClipboardItem>(&sql)
@@ -1536,11 +1653,78 @@ impl ClipboardRepository {
 
     pub async fn touch(&self, id: &str) -> Result<(), sqlx::Error> {
         let now = chrono::Utc::now().timestamp();
-        sqlx::query("UPDATE clipboard_items SET updated_at = ? WHERE id = ?")
-            .bind(now)
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        let mut tx = self.pool.begin().await?;
+
+        let item: Option<(bool, Option<i64>)> = sqlx::query_as(
+            "SELECT is_favorite, favorite_order FROM clipboard_items WHERE id = ? AND is_deleted = 0",
+        )
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        if let Some((true, current_order)) = item {
+            match current_order {
+                Some(order) if order > 1 => {
+                    sqlx::query(
+                        "UPDATE clipboard_items
+                         SET favorite_order = favorite_order + 1
+                         WHERE is_deleted = 0 AND is_favorite = 1 AND favorite_order < ? AND id != ?",
+                    )
+                    .bind(order)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+
+                    sqlx::query(
+                        "UPDATE clipboard_items
+                         SET favorite_order = 1, updated_at = ?
+                         WHERE id = ?",
+                    )
+                    .bind(now)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                Some(_) => {
+                    sqlx::query("UPDATE clipboard_items SET updated_at = ? WHERE id = ?")
+                        .bind(now)
+                        .bind(id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+                None => {
+                    sqlx::query(
+                        "UPDATE clipboard_items
+                         SET favorite_order = CASE
+                           WHEN favorite_order IS NULL OR favorite_order <= 0 THEN 2
+                           ELSE favorite_order + 1
+                         END
+                         WHERE is_deleted = 0 AND is_favorite = 1 AND id != ?",
+                    )
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+
+                    sqlx::query(
+                        "UPDATE clipboard_items
+                         SET favorite_order = 1, updated_at = ?
+                         WHERE id = ?",
+                    )
+                    .bind(now)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+            }
+        } else {
+            sqlx::query("UPDATE clipboard_items SET updated_at = ? WHERE id = ?")
+                .bind(now)
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tx.commit().await?;
         Ok(())
     }
 

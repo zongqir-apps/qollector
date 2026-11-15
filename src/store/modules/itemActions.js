@@ -28,14 +28,39 @@ const syncCopiedItemActivity = (state, itemId, updatedAt) => {
   if (state.isOrderLocked) {
     return state;
   }
+  const targetItem = state.items.find((candidate) => candidate.id === itemId);
+  const isTargetFavorite = Boolean(targetItem?.is_favorite);
+  const targetFavoriteOrder = Number(targetItem?.favorite_order);
+
   let changed = false;
   const nextItems = state.items.map((candidate) => {
-    if (candidate.id !== itemId) return candidate;
-    changed = true;
-    return {
-      ...candidate,
-      updated_at: updatedAt,
-    };
+    if (candidate.id === itemId) {
+      changed = true;
+      return {
+        ...candidate,
+        updated_at: updatedAt,
+        ...(isTargetFavorite ? { favorite_order: 1 } : {}),
+      };
+    }
+    if (isTargetFavorite && candidate.is_favorite) {
+      const order = Number(candidate.favorite_order);
+      if (Number.isFinite(targetFavoriteOrder) && targetFavoriteOrder > 1) {
+        if (Number.isFinite(order) && order < targetFavoriteOrder) {
+          changed = true;
+          return {
+            ...candidate,
+            favorite_order: order + 1,
+          };
+        }
+      } else if (!Number.isFinite(targetFavoriteOrder) || targetFavoriteOrder <= 0) {
+        changed = true;
+        return {
+          ...candidate,
+          favorite_order: Number.isFinite(order) && order > 0 ? order + 1 : 2,
+        };
+      }
+    }
+    return candidate;
   });
 
   const sortedItems = changed ? mergeUniqueById([], nextItems) : nextItems;
@@ -44,6 +69,7 @@ const syncCopiedItemActivity = (state, itemId, updatedAt) => {
     ? {
       ...state.previewItem,
       updated_at: updatedAt,
+      ...(isTargetFavorite ? { favorite_order: 1 } : {}),
     }
     : state.previewItem;
 
