@@ -835,8 +835,8 @@ function HistoryStream({ style }) {
     if (!computedAnchor && typeof document !== 'undefined') {
       const el = document.querySelector(`[data-item-id="${targetItem.id}"]`);
       if (el) {
-        el.scrollIntoView?.({ block: 'nearest', behavior: 'instant' });
-        const rect = el.getBoundingClientRect();
+        const cardEl = el.querySelector('.compact-card') || el;
+        const rect = cardEl.getBoundingClientRect();
         computedAnchor = {
           top: rect.top,
           left: rect.left,

@@ -5,7 +5,7 @@ import { Pencil, X, Check } from 'lucide-react';
 import '../../styles/quick-note-popover.css';
 
 const POPOVER_WIDTH = 320;
-const POPOVER_HEIGHT = 104;
+const POPOVER_HEIGHT = 88;
 const VIEWPORT_PADDING = 12;
 const GAP = 6;
 
@@ -120,7 +120,7 @@ function QuickNotePopover({
       }
 
       const cardLeft = typeof anchorPosition.left === 'number' ? anchorPosition.left : 0;
-      left = cardLeft + 8;
+      left = cardLeft;
     } else {
       const anchorY = typeof anchorPosition.y === 'number' ? anchorPosition.y : 100;
       const spaceBelow = winHeight - (anchorY + GAP);
@@ -163,22 +163,22 @@ function QuickNotePopover({
     >
       <div
         ref={popoverRef}
-        className={`quick-note-positioner placement-${placement}`}
+        className={`quick-note-popover-positioner placement-${placement}`}
         style={positionStyle}
       >
         <div
-          className="quick-note-card"
+          className="quick-note-popover-card"
           role="dialog"
           aria-label={t('item.editNote')}
         >
-          <div className="quick-note-header">
-            <div className="quick-note-title">
-              <Pencil size={13} className="quick-note-icon" />
+          <div className="quick-note-popover-header">
+            <div className="quick-note-popover-title">
+              <Pencil size={13} className="quick-note-popover-icon" />
               <span>{t('item.editNote')}</span>
             </div>
             <button
               type="button"
-              className="quick-note-close-btn"
+              className="quick-note-popover-close-btn"
               onClick={onClose}
               aria-label={t('common.cancel')}
               title={t('common.cancel')}
@@ -187,11 +187,11 @@ function QuickNotePopover({
             </button>
           </div>
 
-          <div className="quick-note-input-row">
+          <div className="quick-note-popover-input-row">
             <input
               ref={inputRef}
               type="text"
-              className="quick-note-input"
+              className="quick-note-popover-input"
               value={noteInput}
               onChange={(e) => setNoteInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -204,7 +204,7 @@ function QuickNotePopover({
             {noteInput && (
               <button
                 type="button"
-                className="quick-note-clear-btn"
+                className="quick-note-popover-clear-btn"
                 onClick={() => setNoteInput('')}
                 title={t('common.clear')}
                 aria-label={t('common.clear')}
@@ -214,7 +214,7 @@ function QuickNotePopover({
             )}
             <button
               type="button"
-              className="quick-note-confirm-btn"
+              className="quick-note-popover-confirm-btn"
               onClick={() => void handleSaveAndClose()}
               disabled={busy}
               title={`${t('common.save')} (Enter)`}
@@ -224,8 +224,8 @@ function QuickNotePopover({
             </button>
           </div>
 
-          <div className="quick-note-footer">
-            <span className="quick-note-shortcut-hint">
+          <div className="quick-note-popover-footer">
+            <span className="quick-note-popover-shortcut-hint">
               Enter {t('common.save')} · Esc {t('common.cancel')}
             </span>
           </div>

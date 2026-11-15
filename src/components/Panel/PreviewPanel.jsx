@@ -659,11 +659,35 @@ function PreviewPanel() {
       }
     };
 
+    const handleQuickNoteShortcut = (e) => {
+      if (e.key !== 'F2') return;
+      if (isEditingContent) return;
+      if (isEditableElement(e.target)) return;
+      if (!item?.id) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (showAIAssistant) setShowAIAssistant(false);
+      startEditNote(item);
+    };
+
     window.addEventListener('keydown', handleQuickTagShortcut, true);
+    window.addEventListener('keydown', handleQuickNoteShortcut, true);
     return () => {
       window.removeEventListener('keydown', handleQuickTagShortcut, true);
+      window.removeEventListener('keydown', handleQuickNoteShortcut, true);
     };
-  }, [historyTagShortcutEnabled, isEditingContent, addingTagItemId, item, startAddTag, selectedItemIds.length]);
+  }, [
+    historyTagShortcutEnabled,
+    isEditingContent,
+    addingTagItemId,
+    item,
+    startAddTag,
+    selectedItemIds.length,
+    showAIAssistant,
+    startEditNote,
+  ]);
 
   useEffect(() => {
     const handleGlobalEscape = (e) => {
@@ -1517,7 +1541,7 @@ function PreviewPanel() {
                     startEditNote(item);
                   }
                 }}
-                title={item.user_note ? t('item.editNote') : t('item.addNote')}
+                title={`${item.user_note ? t('item.editNote') : t('item.addNote')} (F2)`}
               >
                 <StickyNote size={14} />
                 <span>{item.user_note ? t('item.editNote') : t('item.addNote')}</span>
