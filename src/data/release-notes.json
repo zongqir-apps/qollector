@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.11",
+      "publishedAt": "2026-11-22",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-11",
+      "summary": {
+        "zh-CN": "五层纵深防御重构 Windows 划词自动复制：引入 UI Automation 零按键直读选区与非文本控件拦截、移除危险的 AttachThreadInput 注入，并重构带实测校验的串行分段 Ctrl+C 引擎，彻底根治误触打出字符 c 顽疾。",
+        "en-US": "Overhauled Windows Copy-on-Select with 5-layer defense-in-depth: added zero-keystroke UI Automation selection reading and non-text chrome filtering, removed unsafe AttachThreadInput injection, and rebuilt a serialized, verified staged Left-Ctrl+C engine to eradicate accidental 'c' keystrokes."
+      },
+      "highlights": {
+        "zh-CN": [
+          "Windows UI Automation 零按键直读选区与控件拦截：在 Chrome、Edge、VS Code、新版记事本、Word 与 Electron 等现代应用中优先通过 UITextPattern 直接读取选中文本写入剪贴板（0 模拟按键），并自动过滤密码框、滚动条、标题栏、滑块、标签页与无选区空操。",
+          "根除 Win32 修饰键丢态根因：彻底移除 AttachThreadInput 改用无侵入 GetGUIThreadInfo 探测原生焦点与移动/菜单状态；修复底层键盘钩子 LLKHF_INJECTED 位掩码误判，并将管理员进程识别权限改为 PROCESS_QUERY_LIMITED_INFORMATION 补全远程桌面/虚拟机黑名单。",
+          "全时键盘打断与精准手势门禁：任何物理按键均立即取消等待期内的复制任务，杜绝“选完即打字”时撞车输入法；强化窗口未移动/客户区边界/光标形态校验与短促干净单击判定，过滤拖窗口、拖滚动条与双击非文本区域误触发。",
+          "串行化实测校验分段按键兜底：仅在非原生且无 UIA 桥接的遗留应用中互斥串行触发，按下具体左 Ctrl（VK_LCONTROL）后实测确认系统修饰态生效、焦点未变且无新输入才发 C 键，并增加 30ms 滞后保持与 RAII 防卡键保护，杜绝退化成裸 c。"
+        ],
+        "en-US": [
+          "Zero-Keystroke UI Automation Selection Reading: Directly reads selected text via UITextPattern in Chrome, Edge, VS Code, Notepad, Word, and Electron apps with zero synthetic keystrokes, while filtering out password fields, scrollbars, titlebars, sliders, tabs, and confirmed empty selections.",
+          "Eliminated Win32 Modifier Drop Root Causes: Replaced intrusive AttachThreadInput with GetGUIThreadInfo to inspect focus and move/menu states safely; fixed the KBDLLHOOKSTRUCT LLKHF_INJECTED flag bitmask bug and switched process inspection to PROCESS_QUERY_LIMITED_INFORMATION with expanded RDP/VM exclusions.",
+          "Real-Time Typing Cancellation & Strict Gesture Gates: Any physical keystroke immediately aborts pending copy tasks to prevent collisions during select-then-type workflows; added window rect stability, client-area bounds, cursor checks, and clean click validation.",
+          "Serialized Verified Staged Ctrl+C Fallback: Guarded fallback injection with a mutex lock, concrete VK_LCONTROL scan codes, pre-C OS modifier state verification, a 30ms trailing Ctrl hold for async/IME consumers, and an RAII release guard."
+        ]
+      }
+    },
+    {
       "version": "0.7.10",
       "publishedAt": "2026-11-15",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-10",
