@@ -209,6 +209,8 @@ function CollectionBoard({
   const collectionSortLongPressTimerRef = useRef(null);
   const collectionSortEntryToastTimerRef = useRef(null);
   const collectionCardClickTimerRef = useRef(null);
+  const lastCollectionCardClickRef = useRef({ itemId: null, timestamp: 0 });
+  const lastCollectionDoubleClickRef = useRef({ itemId: null, timestamp: 0 });
   const collectionSortLongPressPointerRef = useRef({ pointerId: null, x: 0, y: 0 });
   const suppressNextCardClickRef = useRef(false);
   const isCollectionSortMode = !isMiniMode && collectionSortMode;
@@ -885,6 +887,19 @@ function CollectionBoard({
     collectionSortAnchorRef.current = null;
   }, [clearCollectionSortLongPressTimer]);
 
+  const triggerCollectionDoubleClickAction = useCallback((item) => {
+    if (!item?.id || isCollectionSortMode) return;
+    const now = Date.now();
+    if (
+      lastCollectionDoubleClickRef.current.itemId === item.id
+      && now - lastCollectionDoubleClickRef.current.timestamp <= 350
+    ) {
+      return;
+    }
+    lastCollectionDoubleClickRef.current = { itemId: item.id, timestamp: now };
+    onCopyAndAutoPaste?.(item, 'collection', { bypassInternalSourceProtection: true });
+  }, [isCollectionSortMode, onCopyAndAutoPaste]);
+
   const handleCollectionCardClick = useCallback((item, event) => {
     if (suppressNextCardClickRef.current) {
       suppressNextCardClickRef.current = false;
@@ -908,11 +923,37 @@ function CollectionBoard({
     if (isCollectionSortMode) {
       return;
     }
+
+    const now = Date.now();
+    const isIgnored = shouldIgnoreCardDoubleClickTarget(event.target, event.currentTarget);
+    const isFallbackDoubleClick = (
+      !isIgnored
+      && lastCollectionCardClickRef.current.itemId === item.id
+      && now - lastCollectionCardClickRef.current.timestamp <= 450
+    );
+    if (isFallbackDoubleClick) {
+      event.preventDefault();
+      lastCollectionCardClickRef.current = { itemId: null, timestamp: 0 };
+      clearCollectionSortLongPressTimer();
+      window.getSelection()?.removeAllRanges();
+      triggerCollectionDoubleClickAction(item);
+      return;
+    }
+
+    lastCollectionCardClickRef.current = { itemId: item.id, timestamp: now };
     collectionCardClickTimerRef.current = setTimeout(() => {
       collectionCardClickTimerRef.current = null;
       onOpenPreview?.(item);
     }, PREVIEW_CLICK_DELAY_MS);
-  }, [clearCollectionCardClickTimer, isCollectionSortMode, onOpenPreview, onToggleSelectItem, selectedItemIds.length]);
+  }, [
+    clearCollectionCardClickTimer,
+    clearCollectionSortLongPressTimer,
+    isCollectionSortMode,
+    onOpenPreview,
+    onToggleSelectItem,
+    selectedItemIds.length,
+    triggerCollectionDoubleClickAction,
+  ]);
 
   const handleCollectionCardDoubleClick = useCallback((item, event) => {
     if (!item?.id) return;
@@ -924,18 +965,17 @@ function CollectionBoard({
     event.stopPropagation();
     clearCollectionSortLongPressTimer();
     clearCollectionCardClickTimer();
+    lastCollectionCardClickRef.current = { itemId: null, timestamp: 0 };
     collectionSortLongPressPointerRef.current.pointerId = null;
     setActiveItemId(item.id);
     setOpenColorPickerItemId(null);
     window.getSelection()?.removeAllRanges();
 
-    if (isCollectionSortMode) return;
-    onCopyAndAutoPaste?.(item, 'collection', { bypassInternalSourceProtection: true });
+    triggerCollectionDoubleClickAction(item);
   }, [
     clearCollectionSortLongPressTimer,
     clearCollectionCardClickTimer,
-    isCollectionSortMode,
-    onCopyAndAutoPaste,
+    triggerCollectionDoubleClickAction,
   ]);
 
   const handleCollectionCardContextMenu = useCallback((item, index, event) => {
@@ -1238,6 +1278,9 @@ function CollectionBoard({
             onClick={(e) => {
               e.stopPropagation();
               onOpenQuickNote?.(item);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
             }}
           >
             <span className="compact-card-alias-tag">{userNote}</span>

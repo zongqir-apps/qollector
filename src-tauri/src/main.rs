@@ -570,6 +570,7 @@ fn main() {
                 start_input_capture_monitor(manager.clone(), input_capture_state);
                 start_chat_context_monitor(manager.clone(), chat_context_capture_state);
                 start_copy_on_select_monitor(copy_on_select_state);
+                crate::window_lifecycle::start_external_window_tracker();
                 init_meter.mark("spawn_clipboard_monitor");
                 startup_metrics_for_core_init.mark_monitor_spawn_complete();
                 (general_config, is_first_run_general_config)

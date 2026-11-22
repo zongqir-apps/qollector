@@ -7,7 +7,8 @@ import {
   shouldIgnoreCardDoubleClickTarget,
 } from '../../../utils/previewInteractionPolicy';
 
-const HISTORY_DOUBLE_CLICK_FALLBACK_WINDOW_MS = 420;
+const HISTORY_DOUBLE_CLICK_FALLBACK_WINDOW_MS = 450;
+const DOUBLE_CLICK_DEDUPE_WINDOW_MS = 350;
 
 function getExternalFilePaths(item) {
   if (item.type_ === 'file' && item.content) {
@@ -54,6 +55,7 @@ export default function useHistoryRowInteractions({
 }) {
   const clickTimerRef = useRef(null);
   const lastClickRef = useRef({ itemId: null, timestamp: 0 });
+  const lastDoubleClickTriggeredRef = useRef({ itemId: null, timestamp: 0 });
 
   useEffect(() => () => {
     if (clickTimerRef.current) {
@@ -63,17 +65,21 @@ export default function useHistoryRowInteractions({
   }, []);
 
   const triggerHistoryDoubleClickAction = useCallback((item) => {
+    if (!item?.id) return;
+    const now = Date.now();
+    if (
+      lastDoubleClickTriggeredRef.current.itemId === item.id
+      && now - lastDoubleClickTriggeredRef.current.timestamp <= DOUBLE_CLICK_DEDUPE_WINDOW_MS
+    ) {
+      return;
+    }
+    lastDoubleClickTriggeredRef.current = { itemId: item.id, timestamp: now };
     handleCopyAndAutoPaste(item, 'history', { bypassInternalSourceProtection: true });
   }, [handleCopyAndAutoPaste]);
 
   const handleCardClick = useCallback((item, index, e) => {
     e.stopPropagation();
     if (typeof index !== 'number' || index < 0 || index >= filteredItems.length) return;
-
-    const selection = window.getSelection();
-    if (selection && selection.toString().trim().length > 0) {
-      return;
-    }
 
     if (e.shiftKey) {
       e.preventDefault();
@@ -126,26 +132,37 @@ export default function useHistoryRowInteractions({
     }
 
     const now = Date.now();
+    const isIgnoredForDoubleClick = shouldIgnoreCardDoubleClickTarget(e.target, e.currentTarget);
     const isFallbackDoubleClick = (
-      e.detail === 1
+      !isIgnoredForDoubleClick
       && lastClickRef.current.itemId === item.id
       && now - lastClickRef.current.timestamp <= HISTORY_DOUBLE_CLICK_FALLBACK_WINDOW_MS
     );
+
+    if (isFallbackDoubleClick) {
+      e.preventDefault();
+      lastClickRef.current = { itemId: null, timestamp: 0 };
+      window.getSelection()?.removeAllRanges();
+      triggerHistoryDoubleClickAction(item);
+      return;
+    }
+
+    // Preserve single-drag partial text selection inside cards without opening preview.
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) {
+      lastClickRef.current = { itemId: null, timestamp: 0 };
+      return;
+    }
+
     lastClickRef.current = {
       itemId: item.id,
       timestamp: now,
     };
 
-    if (isFallbackDoubleClick) {
-      e.preventDefault();
-      triggerHistoryDoubleClickAction(item);
-      return;
-    }
-
     clickTimerRef.current = setTimeout(() => {
       openItemPreview(setPanelMode, item);
       clickTimerRef.current = null;
-    }, HISTORY_DOUBLE_CLICK_FALLBACK_WINDOW_MS);
+    }, PREVIEW_CLICK_DELAY_MS);
   }, [
     filteredItems,
     selectionAnchorIndexRef,

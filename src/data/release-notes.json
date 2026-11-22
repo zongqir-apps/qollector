@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.12",
+      "publishedAt": "2026-11-22",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-12",
+      "summary": {
+        "zh-CN": "全链路根治卡片双击无法复制与一键自动粘贴高频失灵：解除正文与备注区的双击误拦截、新增 Windows 前台窗口实时追踪与合法焦点移交，并升级防丢键自动粘贴注入引擎。",
+        "en-US": "End-to-end fix for broken card double-click copy and unreliable auto-paste: unblocked double-click on card text/note areas, added continuous Windows foreground window tracking with proper focus handoff, and hardened Left-Ctrl+V paste injection."
+      },
+      "highlights": {
+        "zh-CN": [
+          "修复卡片文字区双击失效：将正文与备注区的局部划选规则从双击拦截白名单中解耦，在保留拖选局部文字能力的同时，双击卡片任意非按钮区域均可稳定触发整条复制与自动粘贴。",
+          "消除历史流与收藏区单击/双击冲突：重构单击预览与双击防抖兜底协同（统一 320ms 预览延迟 + 450ms 双击兜底 + 350ms 防双发去重），彻底解决 Mini 模式单栏预览抢焦点与 WebView2 微抖吞双击问题。",
+          "全场景外部窗口实时追踪：接入 Windows EVENT_SYSTEM_FOREGROUND 事件钩子与 Z-Order 兜底查找，无论通过快捷键、托盘、任务栏还是置顶侧边栏直接双击，均能准确锁定上一个活跃目标窗口。",
+          "重构焦点移交与自动粘贴注入：在隐藏 Qollect 前先合法移交前台权限并按最小化状态恢复目标窗口，置顶模式粘贴后改用 SW_SHOWNOACTIVATE 静默恢复绝不抢焦点；粘贴按键改用具体左 Ctrl、循环等待鼠标左键抬起并延长 30ms 滞后保持。"
+        ],
+        "en-US": [
+          "Fixed Dead Double-Click on Card Text: Decoupled selectable text/note regions from card double-click ignore rules so partial drag selection still works while double-clicking anywhere on card content reliably triggers copy/auto-paste.",
+          "Eliminated Click vs Double-Click Collisions: Unified History Stream and Collection Board with a 320ms preview delay, 450ms double-click fallback, and 350ms deduplication, preventing single-pane Mini Mode preview and WebView2 micro-drags from swallowing double clicks.",
+          "Continuous External Window Tracking: Added a zero-polling Windows EVENT_SYSTEM_FOREGROUND hook with Z-order fallback so auto-paste always targets the true last active external window regardless of how Qollect was opened or pinned.",
+          "Hardened Focus Transfer & Paste Injection: Transfers foreground authority before hiding Qollect, restores pinned windows via SW_SHOWNOACTIVATE without stealing focus, waits for physical left-click release, and emits staged concrete VK_LCONTROL+V with a 30ms trailing hold."
+        ]
+      }
+    },
+    {
       "version": "0.7.11",
       "publishedAt": "2026-11-22",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-11",

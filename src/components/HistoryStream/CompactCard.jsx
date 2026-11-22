@@ -671,6 +671,9 @@ function CompactCard({
               e.stopPropagation();
               onOpenQuickNote?.(item);
             }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+            }}
           >
             <span className="compact-card-alias-tag">{userNote}</span>
           </div>
@@ -685,6 +688,7 @@ function CompactCard({
                   key={tag}
                   className="compact-tag panel-card-tag clickable"
                   onClick={(e) => { e.stopPropagation(); onTagClick?.(tag); }}
+                  onDoubleClick={(e) => { e.stopPropagation(); }}
                 >
                   {tag}
                 </span>

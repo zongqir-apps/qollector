@@ -278,26 +278,73 @@ pub async fn try_paste_foreground(app: tauri::AppHandle) -> Result<bool, String>
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::Foundation::HWND;
+        use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
         use windows::Win32::UI::WindowsAndMessaging::{
-            GetForegroundWindow, GetWindowThreadProcessId, IsWindow,
-            SetForegroundWindow, ShowWindow, BringWindowToTop, SW_SHOW,
-        };
-        use windows::Win32::System::Threading::{
-            GetCurrentThreadId, AttachThreadInput,
+            AllowSetForegroundWindow, BringWindowToTop, GetClassNameW, GetForegroundWindow,
+            GetWindowThreadProcessId, IsIconic, IsWindow, SetForegroundWindow, ShowWindow,
+            SW_RESTORE, SW_SHOWNOACTIVATE,
         };
 
-        let target_hwnd_val = crate::window_lifecycle::get_last_external_active_window();
+        // 1. Capture our own foreground HWND while Qollect is still active (before hiding),
+        //    so we hold legal foreground transfer rights and can restore pinned windows without
+        //    stealing focus back later.
+        let self_fg_hwnd_val: usize = unsafe {
+            let fg = GetForegroundWindow();
+            if !fg.is_invalid() {
+                let mut pid = 0;
+                GetWindowThreadProcessId(fg, Some(&mut pid));
+                if pid == std::process::id() {
+                    fg.0 as usize
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+        };
+
+        // 2. Resolve target external window: prefer continuously tracked last external HWND,
+        //    falling back to the nearest visible external top-level window in Z-order.
+        let mut target_hwnd_val = crate::window_lifecycle::get_last_external_active_window();
+        let recorded_valid = if target_hwnd_val != 0 {
+            unsafe { IsWindow(HWND(target_hwnd_val as *mut _)).as_bool() }
+        } else {
+            false
+        };
+        if !recorded_valid {
+            target_hwnd_val =
+                crate::window_lifecycle::find_fallback_external_window(self_fg_hwnd_val);
+        }
+
+        if target_hwnd_val == 0 {
+            println!("[AutoPaste] No valid external target window found; copied only");
+            return Ok(false);
+        }
 
         let mut pinned_always_on_top = false;
         if let Some(main_window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
             pinned_always_on_top = main_window.is_always_on_top().unwrap_or(false);
         }
 
+        // 3. Transfer foreground authority BEFORE hiding Qollect while our process still owns
+        //    Windows foreground rights. Keep `HWND` strictly scoped to non-await blocks so the
+        //    async Future remains `Send`.
+        unsafe {
+            let target_hwnd = HWND(target_hwnd_val as *mut _);
+            let mut target_pid = 0;
+            GetWindowThreadProcessId(target_hwnd, Some(&mut target_pid));
+            if target_pid != 0 {
+                let _ = AllowSetForegroundWindow(target_pid);
+            }
+            if IsIconic(target_hwnd).as_bool() {
+                let _ = ShowWindow(target_hwnd, SW_RESTORE);
+            }
+            let _ = SetForegroundWindow(target_hwnd);
+        }
+
+        // 4. Hide Qollect (temporarily if pinned) so it cannot intercept focus or obscure caret.
         let mut should_restore_pinned_window = false;
         if pinned_always_on_top {
-            // For pinned windows, briefly hide to hand focus back to the previous app,
-            // then restore without activation after paste.
-            println!("[AutoPaste] main window is pinned (always-on-top), hide briefly to yield focus");
             if let Some(main_window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = main_window.hide();
                 should_restore_pinned_window = true;
@@ -306,62 +353,109 @@ pub async fn try_paste_foreground(app: tauri::AppHandle) -> Result<bool, String>
             hide_main_window(&app);
         }
 
-        // Explicitly restore and activate target window if known.
-        // Use AttachThreadInput to bypass Windows Foreground Lock Timeout so that
-        // the external window is guaranteed to be brought to foreground rather than
-        // flashing in the taskbar.
-        if target_hwnd_val != 0 {
+        // 5. Reinforce activation if Windows did not switch foreground immediately.
+        //    Attach the ACTUAL current foreground thread + our thread + target thread briefly,
+        //    then ALWAYS detach before sending any keyboard input.
+        unsafe {
             let target_hwnd = HWND(target_hwnd_val as *mut _);
-            unsafe {
-                if IsWindow(target_hwnd).as_bool() {
-                    let our_tid = GetCurrentThreadId();
-                    let target_tid = GetWindowThreadProcessId(target_hwnd, None);
+            if GetForegroundWindow() != target_hwnd && IsWindow(target_hwnd).as_bool() {
+                let our_tid = GetCurrentThreadId();
+                let current_fg = GetForegroundWindow();
+                let fg_tid = if !current_fg.is_invalid() {
+                    GetWindowThreadProcessId(current_fg, None)
+                } else {
+                    0
+                };
+                let target_tid = GetWindowThreadProcessId(target_hwnd, None);
 
-                    let attached = if our_tid != target_tid && target_tid != 0 {
+                let attached_fg = if fg_tid != 0 && fg_tid != our_tid {
+                    AttachThreadInput(our_tid, fg_tid, true).as_bool()
+                } else {
+                    false
+                };
+                let attached_target =
+                    if target_tid != 0 && target_tid != our_tid && target_tid != fg_tid {
                         AttachThreadInput(our_tid, target_tid, true).as_bool()
                     } else {
                         false
                     };
 
-                    let _ = ShowWindow(target_hwnd, SW_SHOW);
-                    let _ = BringWindowToTop(target_hwnd);
-                    let _ = SetForegroundWindow(target_hwnd);
+                let _ = BringWindowToTop(target_hwnd);
+                let _ = SetForegroundWindow(target_hwnd);
 
-                    if attached {
-                        let _ = AttachThreadInput(our_tid, target_tid, false);
-                    }
+                if attached_target {
+                    let _ = AttachThreadInput(our_tid, target_tid, false);
+                }
+                if attached_fg {
+                    let _ = AttachThreadInput(our_tid, fg_tid, false);
                 }
             }
         }
 
-        // Wait for foreground focus transition to complete
+        // 6. Wait for foreground transition to settle and verify focus actually left Qollect.
         let mut focus_ready = false;
-        for _ in 0..12 {
+        for _ in 0..16 {
             tokio::time::sleep(std::time::Duration::from_millis(15)).await;
-            unsafe {
+            let reached_target = unsafe {
                 let current_fg = GetForegroundWindow();
-                if !current_fg.is_invalid() {
-                    let fg_val = current_fg.0 as usize;
-                    if target_hwnd_val != 0 && fg_val == target_hwnd_val {
-                        focus_ready = true;
-                        break;
-                    }
-                }
+                !current_fg.is_invalid() && (current_fg.0 as usize) == target_hwnd_val
+            };
+            if reached_target {
+                focus_ready = true;
+                break;
             }
         }
 
-        if !focus_ready {
-            tokio::time::sleep(std::time::Duration::from_millis(40)).await;
-        } else {
-            // Give target app event loop brief time to process WM_ACTIVATE and restore caret
-            tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let foreground_is_external = unsafe {
+            let current_fg = GetForegroundWindow();
+            if current_fg.is_invalid() {
+                false
+            } else {
+                let mut fg_pid = 0;
+                GetWindowThreadProcessId(current_fg, Some(&mut fg_pid));
+                if fg_pid == 0 || fg_pid == std::process::id() {
+                    false
+                } else {
+                    let mut class_name = [0u16; 64];
+                    let len = GetClassNameW(current_fg, &mut class_name);
+                    if len > 0 {
+                        let name = String::from_utf16_lossy(&class_name[..len as usize]);
+                        !crate::window_lifecycle::is_ignored_shell_class(&name)
+                    } else {
+                        true
+                    }
+                }
+            }
+        };
+
+        if !foreground_is_external {
+            println!("[AutoPaste] Foreground did not switch to an external window; aborting paste");
+            if should_restore_pinned_window {
+                if self_fg_hwnd_val != 0 {
+                    unsafe {
+                        let _ = ShowWindow(HWND(self_fg_hwnd_val as *mut _), SW_SHOWNOACTIVATE);
+                    }
+                } else if let Some(main_window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                    let _ = main_window.show();
+                    let _ = main_window.set_always_on_top(true);
+                }
+            }
+            return Ok(false);
         }
+
+        // Give target app event loop time to process WM_ACTIVATE and restore text caret.
+        let settle_ms = if focus_ready { 45 } else { 60 };
+        tokio::time::sleep(std::time::Duration::from_millis(settle_ms)).await;
 
         send_ctrl_v_input().map_err(|e| format!("Failed to simulate paste: {}", e))?;
 
         if should_restore_pinned_window {
-            tokio::time::sleep(std::time::Duration::from_millis(60)).await;
-            if let Some(main_window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+            tokio::time::sleep(std::time::Duration::from_millis(120)).await;
+            if self_fg_hwnd_val != 0 {
+                unsafe {
+                    let _ = ShowWindow(HWND(self_fg_hwnd_val as *mut _), SW_SHOWNOACTIVATE);
+                }
+            } else if let Some(main_window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = main_window.show();
                 let _ = main_window.set_always_on_top(true);
             }
@@ -474,15 +568,21 @@ fn image_source_path(item: &ClipboardItem) -> Result<String, String> {
 fn send_ctrl_v_input() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use std::time::Duration;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetAsyncKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
-        VIRTUAL_KEY, VK_CONTROL, VK_LBUTTON, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+        GetAsyncKeyState, MapVirtualKeyW, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
+        KEYEVENTF_KEYUP, MAPVK_VK_TO_VSC, VIRTUAL_KEY, VK_LBUTTON, VK_LCONTROL, VK_LMENU,
+        VK_LSHIFT, VK_LWIN, VK_MENU, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
     };
 
     const VK_V_KEY: u16 = 0x56;
-    const SCAN_CTRL: u16 = 0x1D;
-    const SCAN_V: u16 = 0x2F;
+    const FALLBACK_SCAN_LCTRL: u16 = 0x1D;
+    const FALLBACK_SCAN_V: u16 = 0x2F;
+    const QOLLECT_PASTE_EXTRA_INFO: usize = 0x514F_4C56; // "QOLV"
 
-    fn send_key_event(vk: u16, scan: u16, key_up: bool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn send_key_event(
+        vk: u16,
+        scan: u16,
+        key_up: bool,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let flags = if key_up {
             KEYEVENTF_KEYUP
         } else {
@@ -497,7 +597,7 @@ fn send_ctrl_v_input() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     wScan: scan,
                     dwFlags: flags,
                     time: 0,
-                    dwExtraInfo: 0,
+                    dwExtraInfo: QOLLECT_PASTE_EXTRA_INFO,
                 },
             },
         };
@@ -509,40 +609,73 @@ fn send_ctrl_v_input() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Ok(())
     }
 
-    // Release any lingering physical modifier keys (Alt, Shift, Win) to avoid distorting Ctrl+V
-    unsafe {
-        // If left mouse button is still physically held from double clicking the card, wait briefly
-        if (GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000) != 0 {
-            std::thread::sleep(Duration::from_millis(25));
-        }
-        if (GetAsyncKeyState(VK_MENU.0 as i32) as u16 & 0x8000) != 0 {
-            let _ = send_key_event(VK_MENU.0, 0, true);
-        }
-        if (GetAsyncKeyState(VK_SHIFT.0 as i32) as u16 & 0x8000) != 0 {
-            let _ = send_key_event(VK_SHIFT.0, 0, true);
-        }
-        if (GetAsyncKeyState(VK_LWIN.0 as i32) as u16 & 0x8000) != 0 {
-            let _ = send_key_event(VK_LWIN.0, 0, true);
-        }
-        if (GetAsyncKeyState(VK_RWIN.0 as i32) as u16 & 0x8000) != 0 {
-            let _ = send_key_event(VK_RWIN.0, 0, true);
+    struct LeftCtrlGuard {
+        scan: u16,
+        active: bool,
+    }
+
+    impl Drop for LeftCtrlGuard {
+        fn drop(&mut self) {
+            if self.active {
+                let _ = send_key_event(VK_LCONTROL.0, self.scan, true);
+                self.active = false;
+            }
         }
     }
 
-    // 1. Press Ctrl down
-    send_key_event(VK_CONTROL.0, SCAN_CTRL, false)?;
-    std::thread::sleep(Duration::from_millis(15));
+    // Wait until the physical left mouse button from double-clicking is fully released
+    // (apps ignore Ctrl+V while mouse-down state is still active).
+    unsafe {
+        for _ in 0..16 {
+            if (GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000) == 0 {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
 
-    // 2. Press V down
-    send_key_event(VK_V_KEY, SCAN_V, false)?;
-    std::thread::sleep(Duration::from_millis(15));
+        // Release any lingering physical non-Ctrl modifiers to avoid distorting Ctrl+V.
+        for modifier in [
+            VK_MENU, VK_LMENU, VK_RMENU, VK_SHIFT, VK_LSHIFT, VK_RSHIFT, VK_LWIN, VK_RWIN,
+        ] {
+            if (GetAsyncKeyState(modifier.0 as i32) as u16 & 0x8000) != 0 {
+                let _ = send_key_event(modifier.0, 0, true);
+            }
+        }
+    }
 
-    // 3. Release V up
-    send_key_event(VK_V_KEY, SCAN_V, true)?;
-    std::thread::sleep(Duration::from_millis(15));
+    let scan_ctrl = unsafe {
+        let mapped = MapVirtualKeyW(VK_LCONTROL.0 as u32, MAPVK_VK_TO_VSC) as u16;
+        if mapped != 0 {
+            mapped
+        } else {
+            FALLBACK_SCAN_LCTRL
+        }
+    };
+    let scan_v = unsafe {
+        let mapped = MapVirtualKeyW(VK_V_KEY as u32, MAPVK_VK_TO_VSC) as u16;
+        if mapped != 0 {
+            mapped
+        } else {
+            FALLBACK_SCAN_V
+        }
+    };
 
-    // 4. Release Ctrl up
-    send_key_event(VK_CONTROL.0, SCAN_CTRL, true)?;
+    // 1. Press concrete Left Ctrl down and allow target window & IME to register modifier state.
+    send_key_event(VK_LCONTROL.0, scan_ctrl, false)?;
+    let ctrl_guard = LeftCtrlGuard {
+        scan: scan_ctrl,
+        active: true,
+    };
+    std::thread::sleep(Duration::from_millis(20));
+
+    // 2. Press V down -> brief hold -> release V up.
+    send_key_event(VK_V_KEY, scan_v, false)?;
+    std::thread::sleep(Duration::from_millis(15));
+    send_key_event(VK_V_KEY, scan_v, true)?;
+
+    // 3. Trailing hold before releasing Left Ctrl so async apps/IME never read Ctrl=up on V.
+    std::thread::sleep(Duration::from_millis(30));
+    drop(ctrl_guard);
 
     Ok(())
 }
