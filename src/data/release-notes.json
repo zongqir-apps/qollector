@@ -2,6 +2,29 @@
   "changelogUrl": "https://qollect.zongqir.com/changelog",
   "releases": [
     {
+      "version": "0.7.13",
+      "publishedAt": "2026-11-26",
+      "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-13",
+      "summary": {
+        "zh-CN": "重构 Windows 底层钩子与剪贴板监听架构：划词复制改为按需动态挂载/卸载低级键鼠钩子，剪贴板监听升级为原生 WM_CLIPBOARDUPDATE 事件驱动，显著降低云桌面与终端安全管控误报及后台开销。",
+        "en-US": "Hardened Windows background listeners for lower security false positives and idle overhead: Copy-on-Select now mounts and unmounts low-level keyboard/mouse hooks strictly on demand, and clipboard monitoring switched from 30ms polling to native WM_CLIPBOARDUPDATE event-driven wakeups."
+      },
+      "highlights": {
+        "zh-CN": [
+          "划词复制低级钩子按需挂载与即时卸载：默认关闭划词复制时不再常驻安装全局 WH_MOUSE_LL / WH_KEYBOARD_LL 钩子，设置页开关实时挂载或安全退出释放，应用退出时同步清理，大幅降低企业安全软件/EDR 误判风险。",
+          "剪贴板监听升级为原生 WM_CLIPBOARDUPDATE 事件驱动：建立独立 HWND_MESSAGE 消息专用窗口直接消费系统剪贴板更新通知，取代原 30ms 高频死循环轮询，并保留 3 秒轻量级兜底以兼容远程桌面与云电脑场景。",
+          "修复事件驱动下内部写入跳过竞态：在应用自身写入剪贴板期间保持跳过哨兵直至序列号落定，避免触发重复回捕。",
+          "加固 Win32 消息循环健壮性：统一将多处 GetMessageW 循环条件修正为返回值 > 0，消除远程桌面会话异常返回 -1 时的空转隐患。"
+        ],
+        "en-US": [
+          "On-Demand Low-Level Hook Lifecycle: Global WH_MOUSE_LL and WH_KEYBOARD_LL hooks are no longer installed at startup when Copy-on-Select is disabled, and now mount or cleanly unhook in real time when toggled or on app exit to reduce EDR/antivirus false positives.",
+          "Event-Driven WM_CLIPBOARDUPDATE Clipboard Listener: Replaced the 30ms polling loop with a dedicated HWND_MESSAGE window and custom WndProc handling WM_CLIPBOARDUPDATE directly, with a lightweight 3s fallback check for remote-desktop resilience.",
+          "Eliminated Self-Write Skip Race Condition: Preserved the in-flight skip sentinel throughout internal clipboard writes until the final sequence number settles, preventing self-triggered duplicate captures.",
+          "Hardened Win32 Message Loops: Updated GetMessageW loops across clipboard, hook, and foreground tracker threads to check > 0 so -1 errors on session anomalies exit cleanly instead of spinning."
+        ]
+      }
+    },
+    {
       "version": "0.7.12",
       "publishedAt": "2026-11-22",
       "changelogUrl": "https://qollect.zongqir.com/changelog#v0-7-12",
