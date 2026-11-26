@@ -82,7 +82,7 @@ pub mod windows {
                         0,
                         0,
                         0,
-                        Some(HWND_MESSAGE),
+                        HWND_MESSAGE,
                         None,
                         None,
                         None,
