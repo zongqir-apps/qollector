@@ -358,6 +358,8 @@ fn toggle_main_window(app: &tauri::AppHandle) {
 }
 
 pub fn perform_shutdown(app: &tauri::AppHandle) {
+    crate::copy_on_select::stop_copy_on_select_monitor();
+
     println!("[Shutdown] Cleaning up tray icon");
     if let Some(_tray) = app.tray_by_id("main") {
         let _ = app.remove_tray_by_id("main");

@@ -17,11 +17,30 @@ pub mod windows {
     /// 友好应用名缓存：key = exe 路径, value = 友好名称
     static APP_NAME_CACHE: LazyLock<Mutex<HashMap<String, String>>> =
         LazyLock::new(|| Mutex::new(HashMap::new()));
-    const CLIPBOARD_POLL_INTERVAL_MS: u64 = 30;
+    /// Event-driven WM_CLIPBOARDUPDATE wakeup channel (bounded & non-blocking in WndProc).
+    static CLIPBOARD_EVENT_TX: LazyLock<Mutex<Option<mpsc::SyncSender<()>>>> =
+        LazyLock::new(|| Mutex::new(None));
+    /// Low-frequency fallback check solely for rare remote-desktop clipboard-chain edge cases.
+    const CLIPBOARD_FALLBACK_POLL_MS: u64 = 3000;
     const CLIPBOARD_READ_RETRIES: usize = 8;
     const CLIPBOARD_READ_RETRY_DELAY_MS: u64 = 25;
     const INTERNAL_SEQUENCE_CAPTURE_RETRIES: usize = 20;
     const INTERNAL_SEQUENCE_CAPTURE_DELAY_MS: u64 = 5;
+
+    unsafe extern "system" fn clipboard_wnd_proc(
+        hwnd: HWND,
+        msg: u32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> LRESULT {
+        if msg == WM_CLIPBOARDUPDATE {
+            if let Some(tx) = CLIPBOARD_EVENT_TX.try_lock().and_then(|g| g.clone()) {
+                let _ = tx.try_send(());
+            }
+            return LRESULT(0);
+        }
+        DefWindowProcW(hwnd, msg, wparam, lparam)
+    }
 
     // Wrapper to make HWND Send
     #[derive(Clone, Copy)]
@@ -42,19 +61,28 @@ pub mod windows {
         pub fn new() -> Result<Self, ClipboardError> {
             let (tx, rx) = mpsc::channel();
 
-            // Create window in a dedicated thread
+            // Create a dedicated message-only window with a custom WndProc so Windows
+            // delivers WM_CLIPBOARDUPDATE directly to our event-driven listener.
             std::thread::spawn(move || {
                 unsafe {
+                    let class_name = w!("QollectClipboardListenerClass");
+                    let wc = WNDCLASSW {
+                        lpfnWndProc: Some(clipboard_wnd_proc),
+                        lpszClassName: class_name,
+                        ..Default::default()
+                    };
+                    let _ = RegisterClassW(&wc);
+
                     let hwnd = CreateWindowExW(
                         WINDOW_EX_STYLE(0),
-                        w!("STATIC"),
+                        class_name,
                         w!("Qollect Clipboard Listener"),
-                        WS_OVERLAPPEDWINDOW,
+                        WINDOW_STYLE(0),
                         0,
                         0,
                         0,
                         0,
-                        None,
+                        Some(HWND_MESSAGE),
                         None,
                         None,
                         None,
@@ -65,12 +93,13 @@ pub mod windows {
                             // Send as usize to make it Send-safe
                             let _ = tx.send(Ok(hwnd.0 as usize));
 
-                            // Keep thread alive with message loop
+                            // Keep thread alive with message loop (> 0 exits cleanly on 0 or -1)
                             let mut msg = MSG::default();
-                            while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+                            while GetMessageW(&mut msg, None, 0, 0).0 > 0 {
                                 let _ = TranslateMessage(&msg);
                                 DispatchMessageW(&msg);
                             }
+                            let _ = RemoveClipboardFormatListener(hwnd);
                         } else {
                             let _ = tx.send(Err("Invalid window handle".to_string()));
                         }
@@ -135,13 +164,16 @@ pub mod windows {
                 ));
             }
 
-            self.skip_sequence
-                .store(observed_sequence, Ordering::SeqCst);
             if observed_sequence != 0 {
+                *self.last_sequence.lock() = observed_sequence;
+                self.skip_sequence
+                    .store(observed_sequence, Ordering::SeqCst);
                 println!(
                     "Marked internal clipboard sequence for skip: {}",
                     observed_sequence
                 );
+            } else {
+                self.skip_sequence.store(0, Ordering::SeqCst);
             }
         }
     }
@@ -149,6 +181,9 @@ pub mod windows {
     #[async_trait]
     impl PlatformClipboard for WindowsClipboard {
         fn register_listener(&self, callback: ClipboardCallback) -> Result<(), ClipboardError> {
+            let (event_tx, event_rx) = mpsc::sync_channel::<()>(4);
+            *CLIPBOARD_EVENT_TX.lock() = Some(event_tx);
+
             unsafe {
                 AddClipboardFormatListener(self.hwnd.0).map_err(|e| {
                     ClipboardError::PlatformError(format!(
@@ -156,9 +191,10 @@ pub mod windows {
                         e
                     ))
                 })?;
+                *self.last_sequence.lock() = GetClipboardSequenceNumber();
             }
 
-            println!("[Clipboard] listener registered");
+            println!("[Clipboard] event-driven WM_CLIPBOARDUPDATE listener registered");
 
             let last_sequence = self.last_sequence.clone();
             let skip_sequence = self.skip_sequence.clone();
@@ -166,13 +202,16 @@ pub mod windows {
             // Create a tokio runtime for callbacks
             let rt = tokio::runtime::Runtime::new().unwrap();
 
-            // Poll clipboard changes
+            // Event-driven clipboard worker woken immediately by WM_CLIPBOARDUPDATE,
+            // with a low-frequency 3s fallback check for remote-desktop resilience.
             std::thread::spawn(move || {
-                println!("Clipboard polling started...");
+                println!("Clipboard event listener started...");
                 loop {
-                    std::thread::sleep(std::time::Duration::from_millis(
-                        CLIPBOARD_POLL_INTERVAL_MS,
+                    let _ = event_rx.recv_timeout(std::time::Duration::from_millis(
+                        CLIPBOARD_FALLBACK_POLL_MS,
                     ));
+                    // Coalesce burst notifications into a single read pass
+                    while event_rx.try_recv().is_ok() {}
 
                     unsafe {
                         let sequence = GetClipboardSequenceNumber();
@@ -188,16 +227,33 @@ pub mod windows {
                         }
 
                         let pending_skip_sequence = skip_sequence.load(Ordering::SeqCst);
-                        if pending_skip_sequence == u32::MAX
-                            || (pending_skip_sequence != 0 && sequence == pending_skip_sequence)
-                        {
+                        if pending_skip_sequence == u32::MAX {
+                            // Internal write still in flight; advance sequence without clearing sentinel.
                             *last = sequence;
-                            skip_sequence.store(0, Ordering::SeqCst);
-                            println!(
-                                "Skipping self-triggered clipboard change (sequence: {})",
-                                sequence
-                            );
                             continue;
+                        }
+                        if pending_skip_sequence != 0 {
+                            if sequence == pending_skip_sequence {
+                                *last = sequence;
+                                let _ = skip_sequence.compare_exchange(
+                                    pending_skip_sequence,
+                                    0,
+                                    Ordering::SeqCst,
+                                    Ordering::SeqCst,
+                                );
+                                println!(
+                                    "Skipping self-triggered clipboard change (sequence: {})",
+                                    sequence
+                                );
+                                continue;
+                            } else {
+                                let _ = skip_sequence.compare_exchange(
+                                    pending_skip_sequence,
+                                    0,
+                                    Ordering::SeqCst,
+                                    Ordering::SeqCst,
+                                );
+                            }
                         }
                         drop(last);
 

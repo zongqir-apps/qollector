@@ -195,7 +195,7 @@ pub fn start_external_window_tracker() {
             }
 
             let mut msg = MSG::default();
-            while GetMessageW(&mut msg, HWND::default(), 0, 0).as_bool() {
+            while GetMessageW(&mut msg, HWND::default(), 0, 0).0 > 0 {
                 let _ = TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }

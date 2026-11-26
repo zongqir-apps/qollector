@@ -22,6 +22,11 @@ impl CopyOnSelectState {
             .store(double_click_enabled, Ordering::Relaxed);
         self.smart_replace_enabled
             .store(smart_replace_enabled, Ordering::Relaxed);
+
+        #[cfg(target_os = "windows")]
+        {
+            windows_impl::sync_hook_lifecycle(enabled);
+        }
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -53,7 +58,7 @@ mod windows_impl {
     use windows::Win32::Graphics::Gdi::ClientToScreen;
     use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_MULTITHREADED};
     use windows::Win32::System::Threading::{
-        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        GetCurrentThreadId, OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
         PROCESS_QUERY_LIMITED_INFORMATION,
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -65,13 +70,14 @@ mod windows_impl {
     use windows::Win32::UI::WindowsAndMessaging::{
         CallNextHookEx, DispatchMessageW, GetClassNameW, GetClientRect, GetCursorInfo,
         GetForegroundWindow, GetGUIThreadInfo, GetMessageW, GetSystemMetrics, GetWindowRect,
-        GetWindowThreadProcessId, LoadCursorW, SendMessageTimeoutW, SetWindowsHookExW,
-        TranslateMessage, UnhookWindowsHookEx, CURSORINFO, GUITHREADINFO, GUI_INMENUMODE,
-        GUI_INMOVESIZE, GUI_POPUPMENUMODE, GUI_SYSTEMMENUMODE, HHOOK, IDC_APPSTARTING, IDC_IBEAM,
-        IDC_NO, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS, IDC_SIZENWSE, IDC_SIZEWE, IDC_WAIT,
-        KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, SMTO_ABORTIFHUNG, SM_CXDOUBLECLK, SM_CYDOUBLECLK,
-        WH_KEYBOARD_LL, WH_MOUSE_LL, WM_COPY, WM_KEYDOWN, WM_LBUTTONDOWN, WM_LBUTTONUP,
-        WM_MBUTTONDOWN, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_SYSKEYDOWN,
+        GetWindowThreadProcessId, LoadCursorW, PeekMessageW, PostThreadMessageW,
+        SendMessageTimeoutW, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx, CURSORINFO,
+        GUITHREADINFO, GUI_INMENUMODE, GUI_INMOVESIZE, GUI_POPUPMENUMODE, GUI_SYSTEMMENUMODE,
+        HHOOK, IDC_APPSTARTING, IDC_IBEAM, IDC_NO, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS,
+        IDC_SIZENWSE, IDC_SIZEWE, IDC_WAIT, KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, PM_NOREMOVE,
+        SMTO_ABORTIFHUNG, SM_CXDOUBLECLK, SM_CYDOUBLECLK, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_COPY,
+        WM_KEYDOWN, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MOUSEWHEEL, WM_QUIT,
+        WM_RBUTTONDOWN, WM_SYSKEYDOWN,
     };
 
     /// Unique marker tag placed in KEYBDINPUT.dwExtraInfo so our own hooks can
@@ -1357,38 +1363,109 @@ mod windows_impl {
         CallNextHookEx(HHOOK::default(), n_code, w_param, l_param)
     }
 
+    struct HookThreadHandle {
+        thread_id: u32,
+        join_handle: std::thread::JoinHandle<()>,
+    }
+
+    static HOOK_RUNTIME: LazyLock<Mutex<Option<HookThreadHandle>>> =
+        LazyLock::new(|| Mutex::new(None));
+
+    /// Install or uninstall WH_MOUSE_LL / WH_KEYBOARD_LL strictly on demand.
+    /// When copy-on-select is disabled (default), no global keyboard/mouse hooks exist in the process.
+    pub fn sync_hook_lifecycle(enabled: bool) {
+        let mut runtime = HOOK_RUNTIME.lock();
+
+        if enabled {
+            if runtime.is_some() {
+                return;
+            }
+
+            let (tx, rx) = std::sync::mpsc::channel::<Option<u32>>();
+            let join_handle = std::thread::spawn(move || unsafe {
+                // Force creation of the thread message queue before publishing thread_id
+                // so PostThreadMessageW(WM_QUIT) can never race ahead of queue creation.
+                let mut init_msg = MSG::default();
+                let _ = PeekMessageW(&mut init_msg, HWND::default(), 0, 0, PM_NOREMOVE);
+
+                let mouse_hook = SetWindowsHookExW(
+                    WH_MOUSE_LL,
+                    Some(mouse_hook_proc),
+                    HINSTANCE::default(),
+                    0,
+                );
+                let kbd_hook = SetWindowsHookExW(
+                    WH_KEYBOARD_LL,
+                    Some(keyboard_hook_proc),
+                    HINSTANCE::default(),
+                    0,
+                );
+
+                let mouse_ok = mouse_hook.is_ok();
+                let kbd_ok = kbd_hook.is_ok();
+
+                if mouse_ok || kbd_ok {
+                    let tid = GetCurrentThreadId();
+                    let _ = tx.send(Some(tid));
+                    println!(
+                        "[CopyOnSelect] Low-level hooks installed on demand (mouse: {}, keyboard: {}, tid: {})",
+                        mouse_ok, kbd_ok, tid
+                    );
+
+                    let mut msg = MSG::default();
+                    while GetMessageW(&mut msg, HWND::default(), 0, 0).0 > 0 {
+                        let _ = TranslateMessage(&msg);
+                        DispatchMessageW(&msg);
+                    }
+
+                    if let Ok(h) = mouse_hook {
+                        let _ = UnhookWindowsHookEx(h);
+                    }
+                    if let Ok(h) = kbd_hook {
+                        let _ = UnhookWindowsHookEx(h);
+                    }
+                    println!("[CopyOnSelect] Low-level hooks uninstalled");
+                } else {
+                    let _ = tx.send(None);
+                    eprintln!("[CopyOnSelect] Failed to install low-level hooks");
+                }
+            });
+
+            match rx.recv() {
+                Ok(Some(thread_id)) => {
+                    *runtime = Some(HookThreadHandle {
+                        thread_id,
+                        join_handle,
+                    });
+                }
+                _ => {
+                    let _ = join_handle.join();
+                }
+            }
+        } else if let Some(handle) = runtime.take() {
+            CLICK_TRACKER.lock().down_valid = false;
+            {
+                let mut replace = REPLACE_TRACKER.lock();
+                replace.armed = false;
+                replace.preserved_text = None;
+            }
+
+            unsafe {
+                let _ = PostThreadMessageW(handle.thread_id, WM_QUIT, WPARAM(0), LPARAM(0));
+            }
+            let _ = handle.join_handle.join();
+        }
+    }
+
     pub fn start_monitor(state: Arc<CopyOnSelectState>) {
+        let enabled = state.is_enabled();
         *COPY_ON_SELECT_STATE.lock() = Some(state);
 
-        std::thread::spawn(|| unsafe {
-            let mouse_hook =
-                SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), HINSTANCE::default(), 0);
-            let kbd_hook =
-                SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_hook_proc), HINSTANCE::default(), 0);
-
-            let mouse_ok = mouse_hook.is_ok();
-            let kbd_ok = kbd_hook.is_ok();
-
-            if mouse_ok || kbd_ok {
-                println!(
-                    "[CopyOnSelect] Low-level hooks installed (mouse: {}, keyboard: {})",
-                    mouse_ok, kbd_ok
-                );
-                let mut msg = MSG::default();
-                while GetMessageW(&mut msg, HWND::default(), 0, 0).as_bool() {
-                    let _ = TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
-                }
-                if let Ok(h) = mouse_hook {
-                    let _ = UnhookWindowsHookEx(h);
-                }
-                if let Ok(h) = kbd_hook {
-                    let _ = UnhookWindowsHookEx(h);
-                }
-            } else {
-                eprintln!("[CopyOnSelect] Failed to install low-level hooks");
-            }
-        });
+        if enabled {
+            sync_hook_lifecycle(true);
+        } else {
+            println!("[CopyOnSelect] Disabled at startup; low-level hooks not installed");
+        }
     }
 }
 
@@ -1401,5 +1478,12 @@ pub fn start_copy_on_select_monitor(state: Arc<CopyOnSelectState>) {
     #[cfg(not(target_os = "windows"))]
     {
         let _ = state;
+    }
+}
+
+pub fn stop_copy_on_select_monitor() {
+    #[cfg(target_os = "windows")]
+    {
+        windows_impl::sync_hook_lifecycle(false);
     }
 }
